@@ -68,3 +68,20 @@ Each entry follows the format:
 - Path B adds 30–40% complexity (secret encryption, body validation) vs. Path A but justifies the entire premise of the product.
 - Cutting GraphQL trades one buzzword resume bullet for sharper REST design (cursor pagination, idempotency, rate limiting per key) — a tradeoff in favor of depth over breadth.
 - Cutting team collaboration, SSO, and multi-region monitoring keeps v1 finishable in the available timeframe.
+
+---
+
+## 2026-05-30 — High-level system architecture
+
+**Context:** Needed to commit to a system architecture for Pharos v1 before significant code is written.
+
+**Decision:** Three logical components — Next.js frontend, Express API, Node.js worker — sharing PostgreSQL and Redis. API and Worker do not communicate directly; they share state via the database and queue. Detailed component rationale and runtime flows captured in `ARCHITECTURE.md`.
+
+**Alternatives considered:**
+- Single Next.js monolith with API routes + cron jobs — rejected because synchronous request handlers can't safely execute long-running scheduled work, and there's no path to scale workers independently.
+- Microservices (separate services for auth, monitors, checks, notifications) — rejected as over-engineering for the scale and team size. A single shared codebase with two processes is the sweet spot.
+- Different queue/cache stack (RabbitMQ for queue + Memcached for cache) — rejected because Redis handles both well and avoids running multiple infrastructure services.
+
+**Tradeoffs:**
+- Requires running two backend processes (API + Worker) instead of one, slightly increasing deployment complexity. Justified by responsiveness and scalability gains.
+- Sharing state via DB + Redis means components must agree on data formats (e.g., job payloads, cache key conventions) without explicit interface contracts. Mitigated by both processes sharing the same TypeScript types via a shared package.
