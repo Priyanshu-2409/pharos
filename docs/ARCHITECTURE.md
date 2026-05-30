@@ -149,3 +149,48 @@ We're explicitly avoiding AWS for v1 because the time cost of
 learning IAM, VPCs, and ECS is too high for a project where the 
 *application* is what we're trying to demonstrate. A future post-v1 
 goal may be migrating to AWS.
+
+## System Diagram
+
+The diagram below shows the components of Pharos and how they 
+communicate. Solid arrows are direct calls; the database and Redis 
+sit in the middle because both the API and Worker read from and 
+write to them, but they never call each other directly.
+
+```mermaid
+flowchart TB
+    User[👤 User's Browser]
+    Frontend[Next.js Frontend<br/>Dashboard, Login, Status Pages]
+    API[Express API<br/>Auth, Validation, Writes]
+    Worker[Node.js Worker<br/>Check Execution, Alerts]
+    Postgres[(PostgreSQL<br/>Source of truth)]
+    Redis[(Redis<br/>Queue + Cache + Rate Limits)]
+    External[External Endpoints<br/>User-configured APIs]
+    Notif[Notification Services<br/>Resend, Discord, Slack]
+    
+    User -->|HTTPS| Frontend
+    Frontend -->|HTTPS REST| API
+    Frontend <-.->|Server-Sent Events| API
+    
+    API -->|Prisma| Postgres
+    API -->|BullMQ| Redis
+    
+    Worker -->|BullMQ| Redis
+    Worker -->|Prisma| Postgres
+    Worker -->|HTTPS pings| External
+    Worker -->|HTTPS/SMTP| Notif
+    
+    style API fill:#dbeafe,stroke:#1e40af,color:#000
+    style Worker fill:#fef3c7,stroke:#a16207,color:#000
+    style Frontend fill:#d1fae5,stroke:#065f46,color:#000
+    style Postgres fill:#fce7f3,stroke:#9d174d,color:#000
+    style Redis fill:#fce7f3,stroke:#9d174d,color:#000
+```
+
+**Reading the diagram:**
+
+- A **user opens the dashboard.** Their browser loads the Next.js frontend, which calls the Express API over HTTPS for data.
+- For **live updates** (a monitor's status changes from up to down), the API pushes events to the frontend over Server-Sent Events.
+- The **API** writes to Postgres and Redis, but never calls the worker directly.
+- The **Worker** independently pulls jobs from Redis, pings external endpoints, writes results to Postgres, and sends notifications when incidents happen.
+- **Postgres** is the source of truth. **Redis** is fast but ephemeral — used for the queue, caching, and rate-limit counters.
