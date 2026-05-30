@@ -46,3 +46,25 @@ Each entry follows the format:
 - Postgres over MongoDB: chose relational integrity and proper indexing for time-series check data over schema flexibility.
 - Separate Express backend over Next.js API routes: chose architectural clarity (clear frontend/backend separation, independent worker process) over deployment simplicity.
 - Better Auth over Clerk: chose learning depth (understanding sessions, cookies, middleware) over speed of implementation.
+
+---
+
+## 2026-05-30 — v1 product scope locked
+
+**Context:** Initial product scoping for Pharos. Multiple paths considered for differentiation, feature breadth, and complexity ceiling.
+
+**Decision:**
+- Position Pharos as an *integration health* monitor (Path B): goes beyond uptime to validate response codes, response times, and response body content using authenticated checks. Differentiates from UptimeRobot (pure uptime) and Datadog (enterprise infrastructure).
+- v1 includes: authenticated endpoint monitoring, body validation, encrypted secrets at rest, dashboards with charts, real-time SSE updates, multi-channel alerts (email/Discord/Slack/webhooks), incident grouping, public status pages, REST API with rate limiting, password reset via email.
+- Explicit non-goals for v1: multi-region monitoring, GraphQL endpoint, browser/synthetic monitoring, mobile push/SMS/voice alerts, team collaboration/SSO, infrastructure monitoring, tracing, log management, error tracking, maintenance windows, mute/snooze alerts.
+
+**Alternatives considered:**
+- Path A (keep as pure uptime monitor) — rejected because it didn't catch the founder's actual pain point (credentials expiring).
+- Path C (pivot to narrow Integration Health Monitor) — rejected because the narrower scope removed generic learning opportunities.
+- Including GraphQL — initially planned, cut because a forced GraphQL endpoint wrapping existing REST routes adds little real value and dilutes the focus on REST done well.
+- Including mute/snooze alerts — cut because it overlaps with the existing "pause monitor" feature.
+
+**Tradeoffs:**
+- Path B adds 30–40% complexity (secret encryption, body validation) vs. Path A but justifies the entire premise of the product.
+- Cutting GraphQL trades one buzzword resume bullet for sharper REST design (cursor pagination, idempotency, rate limiting per key) — a tradeoff in favor of depth over breadth.
+- Cutting team collaboration, SSO, and multi-region monitoring keeps v1 finishable in the available timeframe.
