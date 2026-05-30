@@ -186,6 +186,10 @@ flowchart TB
     style Postgres fill:#fce7f3,stroke:#9d174d,color:#000
     style Redis fill:#fce7f3,stroke:#9d174d,color:#000
 ```
+A higher-fidelity version of the diagram (for slides, presentations, 
+and portfolio use):
+
+![Pharos system architecture](images/architecture.png)
 
 **Reading the diagram:**
 
@@ -194,3 +198,171 @@ flowchart TB
 - The **API** writes to Postgres and Redis, but never calls the worker directly.
 - The **Worker** independently pulls jobs from Redis, pings external endpoints, writes results to Postgres, and sends notifications when incidents happen.
 - **Postgres** is the source of truth. **Redis** is fast but ephemeral — used for the queue, caching, and rate-limit counters.
+
+## Request Flows
+
+These flows describe what actually happens during Pharos's three most 
+important operations. Each flow shows how data and control move through 
+the components.
+
+### Flow 1: A user creates a new monitor
+
+This happens when a user fills out the "Add Monitor" form in the 
+dashboard.
+
+1. The **Frontend** sends `POST /api/monitors` to the API, with the 
+   monitor details (URL, interval, headers, etc.) in the request body 
+   and the session cookie for authentication.
+2. The **API** middleware validates the session and resolves which 
+   user is making the request (authentication).
+3. The **API** validates the request body using zod (URL format, 
+   interval bounds, etc.). If invalid, it returns 400 with details.
+4. The **API** writes a new `Monitor` row to **Postgres** via Prisma. 
+   Encrypted credentials (like Authorization headers) are encrypted 
+   at rest before being written.
+5. The **API** enqueues a recurring "ping this monitor" job into 
+   **Redis** via BullMQ, scheduled to run at the configured interval.
+6. The **API** returns 201 Created with the new monitor details.
+7. The **Frontend** updates the dashboard to show the new monitor.
+
+Total wall-clock time: typically under 200ms. None of this blocks 
+on the actual checking; that begins independently in the worker.
+
+### Flow 2: A scheduled check executes
+
+This happens once per interval, per monitor, forever, until the monitor 
+is deleted or paused.
+
+1. **BullMQ** in the worker process pulls the next "ping monitor X" 
+   job from the **Redis** queue when its scheduled time arrives.
+2. The **Worker** loads the monitor's full configuration from 
+   **Postgres** (URL, headers, validation rules, etc.), decrypting 
+   stored credentials.
+3. The **Worker** makes the configured HTTP request to the 
+   **external endpoint**, with a timeout (so a hanging endpoint 
+   doesn't tie up the worker forever).
+4. The **Worker** records the result — status code, response time, 
+   response body (if needed for validation), pass/fail — as a new 
+   `Check` row in **Postgres**.
+5. The **Worker** evaluates incident state: was this check a failure? 
+   If yes, was the *previous* check also a failure? After N 
+   consecutive failures (the "debouncing threshold"), the monitor 
+   is marked as in an incident.
+6. If a new incident was opened, the **Worker** enqueues notification 
+   jobs (separate from the check job) for each of the user's 
+   configured notification channels.
+7. BullMQ schedules the next execution of this check job at the 
+   configured interval.
+
+The check execution and the notification delivery are intentionally 
+separate jobs: if the email service is down, the next check still 
+runs on schedule.
+
+### Flow 3: An incident triggers an alert
+
+This happens when the check execution flow above marks a monitor as 
+being in an incident.
+
+1. A notification delivery job is in the **Redis** queue (enqueued 
+   in step 6 of Flow 2).
+2. The **Worker** pulls the job from the queue.
+3. The **Worker** loads the user's notification channel configuration 
+   (decrypted webhook URLs, email address, etc.) from **Postgres**.
+4. The **Worker** makes the appropriate outbound request:
+   - For email: calls the **Resend** API.
+   - For Discord/Slack: POSTs to the user's webhook URL.
+   - For custom webhooks: POSTs to the URL the user provided, with 
+     a signed payload (HMAC, so the receiver can verify it really 
+     came from Pharos).
+5. If the delivery fails (e.g., the user's webhook URL is unreachable), 
+   BullMQ retries with exponential backoff. After several failures, 
+   the job moves to the dead-letter queue for investigation.
+6. The **Worker** also records the notification attempt in **Postgres** 
+   for the user's incident history.
+
+Recovery notifications follow the same flow but are triggered when 
+consecutive *successful* checks resolve an open incident.
+
+## Anticipated Hard Problems
+
+These are technical challenges identified during architecture design 
+that will require careful thought during implementation. Naming them 
+upfront isn't the same as solving them — but it's the first step.
+
+### 1. Job execution at scale: when do checks actually run?
+
+With N monitors each scheduled at their own interval, the worker must 
+execute checks roughly on time without falling behind. Implications:
+- A single slow check (e.g., 30 seconds to time out) shouldn't delay 
+  unrelated checks.
+- A worker crash mid-check should result in a retry, not a missed check.
+- Two workers running simultaneously must never both execute the same 
+  scheduled job.
+
+BullMQ's repeated jobs and exclusive-consumption semantics handle 
+most of this, but the configuration (concurrency limits per worker, 
+retry behavior, timeout values) needs careful tuning. Detailed 
+design will happen in Phase 2.
+
+### 2. Idempotency of check execution
+
+If a worker crashes during a check, BullMQ will retry the job. The 
+retry must not create duplicate `Check` rows in the database, or 
+double-count failures toward the incident debouncing threshold.
+
+Likely approach: use BullMQ's job ID combined with a unique constraint 
+on `(monitorId, scheduledFor)` in the database. Detailed design 
+in Phase 2.
+
+### 3. Storing high-frequency time-series data
+
+The `Check` table will grow fast. A user with 10 monitors checking 
+every minute produces ~14,400 rows per day, ~5.2 million per year. 
+At any reasonable user count, naive `SELECT *` queries on this table 
+will get slow.
+
+Approaches to consider in Phase 3:
+- Aggressive indexing on `(monitorId, createdAt)`.
+- Cache aggregated metrics (uptime percentages, response time averages) 
+  in Redis with short TTLs.
+- Periodic rollup of old data into summary tables, with detailed rows 
+  pruned after 90 days.
+- TimescaleDB or partitioned tables if scale demands it (probably 
+  out of scope for v1).
+
+### 4. Avoiding alert storms
+
+When a monitored endpoint goes down, naive alerting could send the 
+user 50 emails per hour. The debouncing logic (N consecutive failures 
+to open an incident, M consecutive successes to close it) prevents 
+flapping, but the edge cases matter:
+- What if the worker restarts mid-incident? The state machine must 
+  recover correctly from the database.
+- What if the user adds a notification channel during an active 
+  incident? Probably no retroactive alerts.
+- What if the user marks an incident as "acknowledged"? Suppress 
+  further alerts but keep recording check results.
+
+Detailed design in Phase 4.
+
+### 5. Secret management for authenticated checks
+
+Users will store API keys, bearer tokens, and other secrets in 
+Pharos so the worker can perform authenticated checks. These must 
+be:
+- Encrypted at rest in Postgres (likely using libsodium or Node's 
+  built-in crypto).
+- Encrypted with a key that is *not* in the database (likely a 
+  Railway-managed environment variable).
+- Never logged, never returned to the API in plaintext (only the 
+  worker decrypts them, just before use).
+- Rotatable: if the encryption key is rotated, existing secrets 
+  must be re-encrypted.
+
+This is some of the most security-sensitive code in Pharos. 
+Detailed design in Phase 2 when authenticated checks ship.
+
+---
+
+*This list will grow as implementation reveals new hard problems. 
+Each item will eventually be resolved with an entry in `DECISIONS.md`.*
