@@ -85,3 +85,22 @@ Each entry follows the format:
 **Tradeoffs:**
 - Requires running two backend processes (API + Worker) instead of one, slightly increasing deployment complexity. Justified by responsiveness and scalability gains.
 - Sharing state via DB + Redis means components must agree on data formats (e.g., job payloads, cache key conventions) without explicit interface contracts. Mitigated by both processes sharing the same TypeScript types via a shared package.
+
+---
+
+## 2026-05-30 — Initial database schema
+
+**Context:** Needed an initial database schema before any backend code is written. Schema affects every component (API, worker, frontend) so it pays to get it roughly right upfront.
+
+**Decision:** Nine application models (User, Monitor, Check, Incident, NotificationChannel, Alert, ApiKey, StatusPage, plus Better-Auth-managed Session/Account/Verification tables). Six enums for state fields. Composite indexes on `(monitorId, createdAt DESC)` for Check and Incident. Secrets (auth headers, channel configs) stored as encrypted `Bytes`. Full schema and per-model rationale captured in `SCHEMA.md`.
+
+**Alternatives considered:**
+- Auto-incrementing integer IDs over CUIDs — rejected because integer IDs leak signup volume, are guessable in URLs, and complicate database merges.
+- String columns instead of enums for state fields — rejected because enums prevent invalid values at the database level and give TypeScript type safety; the migration cost of adding new values is acceptable.
+- A join table for `StatusPage` ↔ `Monitor` instead of a `monitorIds String[]` array — rejected because the list is small and rarely changes; will migrate to a join table if/when usage grows.
+- Computing `Monitor.currentStatus` on-the-fly from the latest Check instead of storing it — rejected because the dashboard renders this constantly and the small denormalization is worth the speed.
+
+**Tradeoffs:**
+- Denormalizing `currentStatus` on Monitor means the worker must keep it in sync with check results. Wrong status is a possible class of bug.
+- Encrypted blobs (`Bytes`) for headers and channel config can't be queried or filtered server-side. This is fine because Pharos never needs to search through them, but it precludes future features like "find all monitors with a `X-API-Key` header" without a schema change.
+- Heavy indexing on the Check table speeds reads at the cost of writes. Acceptable because reads (dashboard renders) dramatically outnumber writes (check inserts).

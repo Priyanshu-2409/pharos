@@ -176,3 +176,94 @@ A separate program that runs independently from the main API,
 consuming jobs from a queue and executing them. In Pharos, the 
 worker is what actually pings monitored endpoints and delivers 
 alerts.
+
+### Attribute (Prisma)
+
+A modifier on a field, marked with `@` (field-level) or `@@` 
+(model-level). Examples: `@id`, `@unique`, `@@index(...)`.
+
+### B-tree
+
+The default data structure used to store database indexes. Allows 
+fast lookups and ordered traversals.
+
+### Cardinality
+
+The "how many" of a relationship. One-to-one, one-to-many, 
+many-to-many.
+
+### Cascade delete
+
+When a parent row is deleted, child rows that reference it are 
+automatically deleted too. Used everywhere in Pharos via 
+`onDelete: Cascade`.
+
+### Composite index (multi-column / compound index)
+
+An index spanning multiple columns. Useful when queries filter or 
+sort by multiple columns at once. The order of columns in the 
+index matters.
+
+### CUID
+
+Collision-resistant unique identifier. A type of random string ID 
+used for primary keys instead of integers. URL-safe, sortable, 
+doesn't leak signup volume.
+
+### Enum
+
+A type that allows only a fixed set of values. Used in Pharos for 
+state fields (monitor status, incident status, channel type, etc.).
+
+### Envelope encryption
+
+A pattern where data is encrypted with a key that's itself stored 
+separately (e.g., in environment variables, not in the database).
+
+### Foreign key (FK)
+
+A column in one table that references the primary key of another 
+table, creating a link between them.
+
+### Full table scan
+
+When the database has to read every row in a table to answer a 
+query because no useful index exists. Slow on large tables.
+
+### Index
+
+A separate, sorted data structure the database maintains so it 
+can find rows quickly without scanning the entire table. Like 
+the index at the back of a book.
+
+### Join table
+
+A table that connects two other tables in a many-to-many 
+relationship.
+
+### Nullable
+
+A field allowed to hold a null value (no value). Marked with `?` 
+after the type in Prisma (e.g., `String?`).
+
+### Primary key (PK)
+
+The unique identifier column for a row in a table. Usually called 
+`id`.
+
+### Relation (Prisma)
+
+A virtual field that lets you traverse links between tables in 
+code without being an actual database column. Powered behind the 
+scenes by a foreign-key column on one side.
+
+### Timestamp columns
+
+The industry-standard `createdAt` and `updatedAt` fields. Used 
+on almost every Pharos table for auditability and cache 
+invalidation.
+
+### Write amplification
+
+The phenomenon that adding indexes makes writes slower, because 
+each index must be updated alongside the row.
