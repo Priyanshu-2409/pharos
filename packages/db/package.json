@@ -1,0 +1,24 @@
+{
+  "name": "@pharos/db",
+  "version": "0.1.0",
+  "description": "Shared database client and Prisma schema for Pharos",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:push": "prisma db push",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0"
+  },
+  "devDependencies": {
+    "dotenv": "^17.4.2",
+    "prisma": "^6.0.0",
+    "typescript": "^5"
+  }
+}
