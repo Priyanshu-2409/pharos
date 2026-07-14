@@ -1,14 +1,28 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { toNodeHandler } from 'better-auth/node';
 import { prisma } from '@pharos/db';
+import { auth } from './lib/auth.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+// CORS — must allow credentials for cookies to cross origins
+app.use(
+  cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+  })
+);
+
+// Better Auth handler — mounted BEFORE express.json()
+// because Better Auth reads the raw request body itself.
+app.all('/api/auth/*splat', toNodeHandler(auth));
+
+// JSON parser for all OTHER routes (must come AFTER auth mount)
 app.use(express.json());
 
 app.get('/health', (req: Request, res: Response) => {
@@ -22,10 +36,7 @@ app.get('/db-health', async (req: Request, res: Response) => {
     res.json({
       status: 'ok',
       database: 'connected',
-      counts: {
-        users: userCount,
-        monitors: monitorCount,
-      },
+      counts: { users: userCount, monitors: monitorCount },
     });
   } catch (error) {
     console.error('Database connection failed:', error);
