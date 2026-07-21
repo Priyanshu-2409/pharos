@@ -26,11 +26,11 @@ app.use('/api/auth', toNodeHandler(auth));
 // JSON parser for all OTHER routes (must come AFTER auth mount)
 app.use(express.json());
 
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'pharos-api' });
 });
 
-app.get('/db-health', async (req: Request, res: Response) => {
+app.get('/db-health', async (_req: Request, res: Response) => {
   try {
     const userCount = await prisma.user.count();
     const monitorCount = await prisma.monitor.count();
@@ -60,4 +60,4 @@ app.get("/api/me", requireAuth, (req, res) => {
     user: req.user,
     session: req.session,
   });
-});
+}); 
