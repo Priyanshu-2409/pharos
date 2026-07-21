@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { toNodeHandler } from 'better-auth/node';
 import { prisma } from '@pharos/db';
 import { auth } from './lib/auth.js';
+import { requireAuth } from "./middleware/requireAuth.js";
 
 dotenv.config();
 
@@ -20,7 +21,7 @@ app.use(
 
 // Better Auth handler — mounted BEFORE express.json()
 // because Better Auth reads the raw request body itself.
-app.all('/api/auth/*splat', toNodeHandler(auth));
+app.use('/api/auth', toNodeHandler(auth));
 
 // JSON parser for all OTHER routes (must come AFTER auth mount)
 app.use(express.json());
@@ -50,4 +51,13 @@ app.get('/db-health', async (req: Request, res: Response) => {
 
 app.listen(PORT, () => {
   console.log(`🗼 Pharos API running on http://localhost:${PORT}`);
+});
+
+app.get("/api/me", requireAuth, (req, res) => {
+  // If we're here, requireAuth already validated the session
+  // and attached req.user. TypeScript knows this too.
+  res.json({
+    user: req.user,
+    session: req.session,
+  });
 });
