@@ -104,3 +104,20 @@ Each entry follows the format:
 - Denormalizing `currentStatus` on Monitor means the worker must keep it in sync with check results. Wrong status is a possible class of bug.
 - Encrypted blobs (`Bytes`) for headers and channel config can't be queried or filtered server-side. This is fine because Pharos never needs to search through them, but it precludes future features like "find all monitors with a `X-API-Key` header" without a schema change.
 - Heavy indexing on the Check table speeds reads at the cost of writes. Acceptable because reads (dashboard renders) dramatically outnumber writes (check inserts).
+
+## Better Auth Origin check on state-changing endpoints
+- Sign-out via Postman returned 403 `MISSING_OR_NULL_ORIGIN`.
+- Cause: Postman doesn't send `Origin` header by default; Better Auth requires it on POST/DELETE etc.
+- Fix in Postman: manually add header `Origin: http://localhost:3000` (a value in `trustedOrigins`).
+- Real browsers auto-send this, so production frontends need no code change.
+
+## Orphaned sessions in the DB
+- Session rows persist in the DB when the client-side cookie is cleared without a proper sign-out call.
+- Not a bug: expected behavior for "user cleared their browser data" scenario.
+- Natural cleanup on `expiresAt` (30 days). Better Auth prunes expired sessions on next lookup.
+- For production: consider a periodic worker to hard-delete expired rows (`DELETE FROM Session WHERE expiresAt < NOW()`).
+
+## Dashboard as client component with useSession
+- Dashboard uses `"use client"` + `useSession()` for auth checks. This is UX-layer, not security.
+- Security lives in the API's `requireAuth` middleware; any actual data fetching happens through that.
+- Hardening later: consider Next.js middleware.ts for edge-level cookie check to avoid HTML being served to logged-out users. Deferred until Phase 10/11.

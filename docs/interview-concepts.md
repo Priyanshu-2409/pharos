@@ -44,3 +44,35 @@
 - `declare module "express-serve-static-core" { interface Request { user?: ... } }` extends third-party types with your own additions.
 - After augmentation, `req.user` is typed everywhere in the codebase with autocomplete.
 - Requires the target module to be a **direct** dependency in `package.json` — transitive-only doesn't work under pnpm's strict layout.
+
+## CORS with credentials — the two-switch model
+- CORS is a browser-enforced policy. Cross-origin requests strip cookies by default (CSRF defense).
+- Two opt-ins required for cookies to flow across origins:
+  1. **Server side:** `cors({ credentials: true })` → sends `Access-Control-Allow-Credentials: true` header.
+  2. **Client side:** fetch call includes `credentials: "include"`. Better Auth React client sets this automatically.
+- **Hard rule:** `Access-Control-Allow-Origin: *` (wildcard) is forbidden with credentials. Must be a specific named origin. If both were allowed, any site could make authenticated requests using stolen cookies. Wildcard exists for public APIs where cookies aren't relevant.
+
+## Origin header defense against CSRF
+- Browsers auto-attach `Origin: <requesting-site>` to state-changing cross-origin requests. JavaScript cannot forge or remove it.
+- Better Auth checks `Origin` on POSTs like `/sign-out`. If not in `trustedOrigins`, returns 403 `MISSING_OR_NULL_ORIGIN`.
+- Postman doesn't auto-send Origin — must be added manually. Real browsers always do.
+
+## Client component vs server component (Next.js App Router)
+- Default = server component: rendered on server, no hooks, no event handlers, no state.
+- `"use client"` directive = client component: renders in browser, can use `useState`, `useEffect`, event handlers.
+- Anything using auth hooks (`useSession`), form state, or interactivity must be a client component.
+
+## Controlled vs uncontrolled inputs
+- Controlled: React state owns the value, every keystroke updates via `onChange`. Standard for validation/transformation.
+- Uncontrolled: DOM owns the value, read via `ref` on submit. Simpler but less flexible.
+
+## Client-side auth is UX, server-side auth is security
+- Client-side session checks (via `useSession()`) prevent UI flashes and enable redirects — they are **not** security.
+- Any user can bypass client-side checks by disabling JavaScript or hitting API endpoints directly.
+- Real security lives in the API's `requireAuth` middleware, which gates the actual data.
+- Together: server enforces the truth, client provides the polish.
+
+## HttpOnly cookies
+- `HttpOnly` cookies cannot be read by JavaScript (`document.cookie` skips them).
+- Defends against XSS: even if an attacker injects JS onto your page, they can't steal the session token.
+- Better Auth sets HttpOnly by default. Verify in DevTools → Application → Cookies.
