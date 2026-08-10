@@ -5,6 +5,7 @@ import { toNodeHandler } from 'better-auth/node';
 import { prisma } from '@pharos/db';
 import { auth } from './lib/auth.js';
 import { requireAuth } from "./middleware/requireAuth.js";
+import { monitorsRouter } from "./routes/monitors.js";
 
 dotenv.config();
 
@@ -48,6 +49,8 @@ app.get('/db-health', async (_req: Request, res: Response) => {
     });
   }
 });
+
+app.use("/api/monitors", monitorsRouter);
 
 app.listen(PORT, () => {
   console.log(`🗼 Pharos API running on http://localhost:${PORT}`);
