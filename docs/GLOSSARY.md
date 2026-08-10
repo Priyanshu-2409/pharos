@@ -6,6 +6,136 @@ where the concept lives in Pharos.
 
 ---
 
+# Glossary — Pharos
+
+Words and acronyms encountered while building Pharos, in the order they became relevant.
+
+## Authentication (authn)
+Verifying who someone is. Login flow.
+
+## Authorization (authz)
+Verifying what someone is allowed to do. Per-action, per-resource permission checks.
+
+## CORS (Cross-Origin Resource Sharing)
+Browser policy that blocks JavaScript on site A from reading responses from site B unless site B opts in via response headers.
+
+## CSRF (Cross-Site Request Forgery)
+Attack where a malicious site tricks a user's browser into making authenticated requests to another site using the user's cookies. Defenses: SameSite cookies, Origin header check, CSRF tokens.
+
+## Credentials (in CORS context)
+Anything the browser stores per-domain to identify a user — mainly cookies, but also HTTP Basic Auth and TLS certs. Blocked by default on cross-origin requests unless both sides opt in.
+
+## Origin
+The scheme + host + port of a page. `http://localhost:3000` and `http://localhost:4000` are different origins even though both are "localhost".
+
+## Middleware
+A function in an HTTP server's request pipeline that runs before the route handler. Can inspect/modify the request, send a response early, or pass control down the chain.
+
+## Session
+A record on the server (usually a DB row) representing an active login. Identified by a random token. The token lives in a cookie on the client.
+
+## JWT (JSON Web Token)
+A signed token containing user info + expiry. Alternative to server-stored sessions. Trades revocation ease for statelessness.
+
+## Scrypt
+A password hashing function. One-way — you can turn password into hash but not back. Better Auth's default hashing choice.
+
+## Hashing (in auth context)
+Turning a password into a fixed-length string via a one-way function. Same input → same output, but you can't reverse the process.
+
+## Prisma
+TypeScript ORM (Object-Relational Mapper). Lets you define your database schema in a `.prisma` file and query it with a typed JavaScript API.
+
+## ORM (Object-Relational Mapper)
+A library that maps database rows to programming-language objects. Abstracts SQL.
+
+## Migration (in DB context)
+A version-controlled change to your database schema. Prisma tracks these in a folder so you can replay them on any environment.
+
+## Zod
+A TypeScript runtime schema validation library. Schemas double as TypeScript types.
+
+## IDOR (Insecure Direct Object Reference)
+Vulnerability where an API accepts a resource ID but doesn't check that the caller is allowed to access it.
+
+## OWASP
+Open Worldwide Application Security Project. Publishes the "Top 10" list of common web security vulnerabilities.
+
+## Monorepo
+One repo containing multiple packages/apps that share code and infra. Pharos uses Turborepo + pnpm workspaces.
+
+## Turborepo
+A build tool for monorepos. Caches task outputs and runs tasks in parallel across workspaces.
+
+## pnpm workspace
+pnpm's mechanism for managing multiple packages in one repo. `--filter <name>` runs commands scoped to a specific package.
+
+## Docker
+Container runtime. Runs isolated processes with their own filesystem, network, etc.
+
+## Container
+A running instance of a Docker image. Ephemeral by default — data inside is lost when it stops unless mounted to a volume.
+
+## Docker image
+A frozen template used to create containers. Pinned versions are best practice (`postgres:16`, not `postgres:latest`).
+
+## Docker volume
+Persistent storage that lives outside a container. Survives container deletion. Where your DB data actually lives.
+
+## Docker Compose
+Declarative config (YAML) that describes multi-container setups. `docker compose up -d` brings everything up.
+
+## PostgreSQL / Postgres
+Relational database. What Pharos uses for all persistent data.
+
+## Redis
+In-memory data store. Used as a queue broker for BullMQ in Phase 11.
+
+## BullMQ
+Node.js job queue library backed by Redis. Used to schedule Pharos's periodic health checks.
+
+## Express
+Node.js web framework. The API layer of Pharos.
+
+## Next.js
+React framework with server-side rendering, routing, and the App Router. The web frontend.
+
+## App Router (Next.js)
+Next.js's modern routing system where folders in `app/` map to URLs and files like `page.tsx` define what renders there.
+
+## Server Component vs Client Component (Next.js)
+Server components render on the server, ship as HTML, can't use hooks or event handlers. Client components (marked `"use client"`) render in the browser, can use React state and effects.
+
+## HttpOnly cookie
+A cookie flag that blocks JavaScript from reading the cookie (`document.cookie` skips it). Defends against XSS.
+
+## SameSite cookie
+A cookie flag that controls when a cookie is sent on cross-site requests. `Lax` (default) is a good balance.
+
+## XSS (Cross-Site Scripting)
+Attack where malicious JavaScript is injected into a legitimate site and runs in users' browsers with the site's permissions.
+
+## Controlled input (React)
+A form input whose value is driven by React state. `<input value={x} onChange={e => setX(e.target.value)} />`.
+
+## `useEffect`
+React hook for side effects — code that runs after render, like data fetching, subscriptions, or timers.
+
+## `useState`
+React hook for local component state.
+
+## Content-Type
+HTTP header indicating what format the request/response body is in. `application/json` is the modern default for APIs.
+
+## `req.body`
+The parsed body of an incoming HTTP request, populated by body-parser middleware. Only available if the parser matches the Content-Type.
+
+## Router (Express)
+A mini Express app that groups related routes. Mounted under a URL prefix.
+
+## Turbopack
+Rust-based bundler used by Next.js for fast dev builds. Successor to Webpack.
+
 ### API
 
 A collection of endpoints that a service exposes for programs to call.

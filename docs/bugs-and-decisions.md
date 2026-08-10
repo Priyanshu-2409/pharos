@@ -42,3 +42,44 @@
 - Cookies on `localhost:4000` in dev, CORS credentials enabled from `localhost:3000`.
 - Both email/password and GitHub OAuth planned (OAuth deferred).
 - Sessions: 30-day expiry, refresh cookie if older than 1 day.
+## Docker Desktop reset — container lost, volume survived
+- Docker Desktop reset between sessions wiped `pharos-postgres` container and cached image.
+- Volume `pharos_pg_data` persisted (volumes and containers are independent lifecycles in Docker).
+- Recovery: added `docker-compose.yml` at repo root with `postgres:16` service and `external: true` volume reference to reuse existing data.
+- Data (Elon user, sessions, schema) intact after recreation.
+- **Lesson:** always start with docker-compose, not `docker run`. Volumes need explicit re-attachment on container recreation, and compose makes it declarative.
+
+## Monitor schema — deferred fields kept, not removed
+- V1 spec called for 4 fields. Existing schema had 15 (method, headers, body, timeoutMs, expectedStatus, expectedBodyMatch etc).
+- Decision: **do not shrink the schema.** Optional fields with sensible defaults cost nothing at rest, and removing then re-adding requires migrations.
+- Ignore the extra fields in V1 routes and UI. Populate them in Phase 10.5 when the UI grows.
+
+## Zod default values
+- `intervalSeconds: z.number().int().min(30).max(3600).default(300)` — if field omitted from request, Zod fills 300 automatically.
+- Verified in Test 2 (created GitHub without interval, got 300 in response).
+- Useful for reasonable defaults without forcing every field in every request.
+
+## Ownership check baked into query, not separate step
+- Considered: `findUnique({ where: { id }})` then `if (monitor.userId !== req.user.id) return 403`.
+- Chose: `findFirst({ where: { id, userId: req.user.id }})` returning null → treat as 404.
+- Reasons:
+  1. Fewer lines, fewer places for logic gaps
+  2. Race-condition safer (no gap between fetch and check)
+  3. Consistent 404 response for both "doesn't exist" and "not yours" — no info leak (IDOR defense)
+- Applied uniformly to PATCH and DELETE.
+
+## Express `req.params` typed as string | string[]
+- @types/express types `req.params.id` defensively — some routing edge cases can put arrays there.
+- Prisma's `where: { id }` expects strictly a string.
+- TypeScript flagged 4 assignability errors on our PATCH/DELETE handlers.
+- Fix chosen: `const id = req.params.id as string;` — type assertion justified by the fact that `/:id` single-segment routes always return string in practice.
+- Alternative (more paranoid): `if (typeof id !== "string") return 400` — deferred as overkill for single-segment routes.
+
+## Postman needs `Origin` header for state-changing endpoints
+- Recurring gotcha. Every POST/PATCH/DELETE via Postman needs `Origin: http://localhost:3000` header manually.
+- Real browsers auto-attach it. Postman doesn't.
+- Better Auth rejects with `MISSING_OR_NULL_ORIGIN` otherwise.
+
+## Session cookies vs Postman between sessions
+- Postman cookie jar can be cleared by app restarts, machine reboots, or long gaps between use.
+- If a request unexpectedly returns 401 after a break, first check: hit `/api/me`. If also 401, re-log in via `/api/auth/sign-in/email` before assuming a bug.

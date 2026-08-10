@@ -76,3 +76,60 @@
 - `HttpOnly` cookies cannot be read by JavaScript (`document.cookie` skips them).
 - Defends against XSS: even if an attacker injects JS onto your page, they can't steal the session token.
 - Better Auth sets HttpOnly by default. Verify in DevTools → Application → Cookies.
+## Authentication vs Authorization
+- **Authentication:** "Who are you?" — verifying identity via password + session cookie.
+- **Authorization:** "Are you allowed to do this?" — checking permissions on a specific resource.
+- Pharos example: `requireAuth` middleware handles authentication (must be logged in). Query-level `where: { id, userId }` handles authorization (must own this monitor).
+- Common failure mode: apps authenticate but forget to authorize per-resource, leading to IDOR bugs.
+
+## IDOR (Insecure Direct Object Reference)
+- Vulnerability where an API accepts a resource ID but doesn't verify the caller is allowed to access it.
+- Attack: User B guesses/discovers User A's monitor ID and calls `DELETE /api/monitors/<A's-id>`. Without ownership check, it succeeds.
+- OWASP Top 10 material. One of the most common real-world web app vulnerabilities.
+- **Defense (Pharos pattern):** embed the ownership check IN the query:
+```typescript
+  prisma.monitor.findFirst({ where: { id, userId: req.user.id } })
+```
+  Returns null if not owned. No separate "check then act" step means no race condition or logic gap.
+- **Response choice:** return 404, not 403. 403 leaks the fact that the ID exists. 404 is indistinguishable from a fake ID. Defense in depth.
+
+## Zod runtime validation
+- TypeScript types are erased at compile time — no runtime enforcement on incoming request bodies.
+- Zod is a schema library that validates data at runtime. Schema doubles as a TypeScript type via inference.
+- Pharos usage: every `POST`/`PATCH` route calls `schema.safeParse(req.body)` before touching DB.
+- `.safeParse()` returns `{ success, data | error }` — cleaner than throwing.
+- Errors are structured, so frontends can show per-field messages.
+- Alternative libraries: Yup, Joi, ArkType. Zod is the modern default in TS ecosystems.
+
+## HTTP status codes chosen deliberately
+- `201 Created` on POST → new resource created
+- `200 OK` on GET, PATCH → success with response body
+- `204 No Content` on DELETE → success, no body to return
+- `400 Bad Request` → validation failed (client sent bad data)
+- `401 Unauthorized` → not authenticated
+- `403 Forbidden` → authenticated but not allowed (rarely used in Pharos — we prefer 404 for IDOR reasons)
+- `404 Not Found` → resource doesn't exist OR you don't have access
+- Correct codes matter: they signal professional intent, and frontends can branch on status without parsing bodies.
+
+## Express Router — organizational pattern
+- `Router()` creates a mini-app that can be mounted under a prefix.
+- Groups related routes in one file: `monitorsRouter` owns everything at `/api/monitors/*`.
+- Middleware mounted on the router runs for every route in it: `monitorsRouter.use(requireAuth)` protects all monitor routes with one line.
+- Adding a new route is automatically protected — no risk of forgetting `requireAuth` on individual handlers.
+
+## The 404 flavor distinction (debugging pattern)
+- **Route not found** (Express default): HTML response, "Cannot GET /path". Means URL doesn't match any registered route.
+- **Resource not found** (your handler): JSON response with your error shape. Means route matched, but the specific resource doesn't exist.
+- Reading which flavor you got tells you which layer the mismatch is in.
+
+## TypeScript non-null assertion (`!`) and when it's OK
+- `req.user!.id` — the `!` tells TS "trust me, this is not null."
+- Justified here because `requireAuth` middleware ran before this line; if it hadn't set `req.user`, we'd have returned 401 already.
+- Overusing `!` (or `as`) defeats TypeScript. Use only when you can point to a concrete runtime invariant that the type system can't see.
+
+## Docker Compose for local infra
+- Compose file = declarative infrastructure. Version-controlled, reproducible, one command to bring up.
+- Beats `docker run` for anything you'll set up more than once.
+- Key concepts: services (long-running processes), volumes (persistent data), networks, healthchecks.
+- **Named volumes with `external: true`** are how you attach an existing volume to a fresh container — data survives container recreation.
+- Interview answer to "how do you manage local dev infrastructure?" — Docker Compose, versioned in the repo.
