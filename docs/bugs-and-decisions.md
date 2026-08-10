@@ -83,3 +83,19 @@
 ## Session cookies vs Postman between sessions
 - Postman cookie jar can be cleared by app restarts, machine reboots, or long gaps between use.
 - If a request unexpectedly returns 401 after a break, first check: hit `/api/me`. If also 401, re-log in via `/api/auth/sign-in/email` before assuming a bug.
+
+## Windows case-insensitivity — third occurrence
+- Component files created as PascalCase, but TypeScript flagged case mismatches when imports referenced them.
+- Same two-step `git mv` trick from Phase 8.
+- Consider this a recurring pattern until we move to WSL2 or add pre-commit hooks that check file casing.
+
+## Global CSS collided with inline component styles
+- Modal appeared as invisible white-on-white because global dark theme leaked into inline-styled components.
+- Fix: explicit `color: "black"` and `border: "1px solid #ccc"` on modal + inputs.
+- **Real fix (deferred):** proper design system with theme tokens. Phase 15 (polish) work.
+- Lesson: inline `style` doesn't shield from inherited CSS. Only proper CSS modules or shadow DOM would.
+
+## Docker healthcheck vs "container running"
+- `docker ps` shows a container as "Up" the moment the process starts, but Postgres takes 5-15 more seconds to be query-ready.
+- The `healthcheck` block in compose runs `pg_isready` every 5 seconds and reports "healthy" status.
+- Downstream services (API, worker) can `depends_on: { postgres: { condition: service_healthy }}` to wait properly. Deferred to Phase 11 when the worker comes online.

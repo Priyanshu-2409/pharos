@@ -133,3 +133,39 @@
 - Key concepts: services (long-running processes), volumes (persistent data), networks, healthchecks.
 - **Named volumes with `external: true`** are how you attach an existing volume to a fresh container — data survives container recreation.
 - Interview answer to "how do you manage local dev infrastructure?" — Docker Compose, versioned in the repo.
+
+## Two layers of input validation (frontend + backend)
+- **Browser-native validation** (`type="url"`, `required`, `min`, `max`) catches obvious errors before any network request. Instant feedback, zero cost.
+- **Server-side Zod validation** is the security boundary — the browser can be bypassed (curl, Postman, disabled JS). Never trust the client alone.
+- Both together = fast UX + safe API. Interviewers ask: "where does validation live?" Answer: both places, for different reasons.
+
+## Component composition — Modal + Form + List pattern
+- Instead of one giant dashboard component, split into single-responsibility pieces.
+- `Modal.tsx` is generic (doesn't know about monitors).
+- `MonitorForm.tsx` handles create AND edit — same fields, different starting values.
+- `MonitorList.tsx` orchestrates data fetching + wires modals in.
+- Same form + same modal reused for two flows. Reuse is the sign of decent React design.
+
+## Imperative refetching vs optimistic updates
+- After a mutation (create/update/delete), we re-run the list fetch.
+- Simpler than optimistic updates (update local state immediately, roll back on error) but slightly slower UX.
+- TanStack Query's `invalidateQueries` is the middle ground: still refetches, but with caching + retry.
+- Correct choice depends on scale. Pharos at V1 is fine with plain refetch.
+
+## Reusable fetch helper pattern
+- Every component calling the API goes through one file (`lib/api.ts`).
+- Sets `credentials: "include"` once, applied everywhere.
+- Handles 204 (empty body) responses.
+- Throws on non-2xx so components can `try/catch`.
+- Typed return values → autocomplete everywhere.
+- Refactor point later: swap to TanStack Query without touching component code.
+
+## Browser `confirm()` and `alert()` are placeholder UX
+- Fine for V1. Real apps use custom confirmation modals for consistency and styling control.
+- Interviewers won't judge for this in a scoped MVP, but expect a follow-up "how would you improve this?"
+
+## `type="url"` HTML input attribute
+- Semantic input type: the browser validates the value is URL-shaped before submit.
+- Also gives mobile users a URL-optimized keyboard.
+- Zero JS. Wraps free UX + a11y win.
+- Same family: `type="email"`, `type="number"`, `type="tel"`, `type="date"`.

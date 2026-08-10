@@ -397,3 +397,32 @@ invalidation.
 
 The phenomenon that adding indexes makes writes slower, because 
 each index must be updated alongside the row.
+
+## IDOR (Insecure Direct Object Reference)
+Vulnerability where an API accepts a resource ID but doesn't verify the caller owns or can access it. See interview-concepts.
+
+## Router (Express)
+A mini Express app that groups related routes under a URL prefix. `monitorsRouter` owns everything at `/api/monitors/*`.
+
+## `.safeParse` (Zod)
+Zod method that returns `{ success, data | error }` instead of throwing. Cleaner control flow than try/catch.
+
+## Optimistic update
+Pattern where the UI updates immediately (assumes success), then rolls back if the server rejects. Faster UX, more code complexity.
+
+## Imperative refetch
+Pattern where after a mutation, the UI re-fetches the source of truth. Simpler than optimistic, but slower.
+
+## TanStack Query (react-query)
+Data-fetching library with caching, retry, refetch-on-focus, and mutation helpers. Standard modern React data layer.
+
+## Hydration mismatch (React/Next.js)
+Warning when the server-rendered HTML doesn't match what React produces on the client. Often caused by browser extensions (Grammarly, ad-blockers) modifying the DOM. Usually cosmetic.
+
+## `credentials: "include"` (Fetch API)
+Instructs the browser to attach cookies to a cross-origin fetch. Required for session cookies to flow to the API.
+
+## PascalCase vs camelCase (React file conventions)
+Components: PascalCase (`Modal.tsx`, `MonitorForm.tsx`).
+Utilities/hooks: camelCase (`useSession.ts`, `apiFetch.ts`).
+Consistency matters more than the specific rule; React community leans PascalCase for components.
