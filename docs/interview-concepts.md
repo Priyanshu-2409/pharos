@@ -241,3 +241,54 @@
 - `updateIncidentState` uses this pattern for 3 state-transition cases.
 - Cleaner than nested `if / else` chains, easier to read one case at a time.
 - Idiomatic in most modern languages.
+
+## Alerting pipeline design — decouple detection from dispatch
+- State detection (worker's incident state machine) runs on every check.
+- Dispatch (email sending) is a side-effect triggered by state transitions.
+- Failure in dispatch must NEVER corrupt state detection — if Resend is down, the incident is still correctly opened in the DB.
+- Pharos V1: dispatch is inline (synchronous with state change) but wrapped in try/catch that never rethrows.
+- Interview follow-up: "how would you scale this?" → move dispatch to its own BullMQ queue for retries + isolation.
+
+## Alert audit trail as a first-class table
+- Every alert attempt (success or failure) writes an `Alert` row.
+- `success: boolean` + `errorMessage: string?` capture the outcome.
+- Enables observability queries: "which alerts failed in the last 24h?", "which incidents never notified anyone?"
+- Alternative: log to a file or external tracing system. DB row is simpler for V1 and queryable.
+
+## Notification channel abstraction
+- `NotificationChannel` model with `type: EMAIL | WEBHOOK` and polymorphic `config: Json`.
+- Design lets you add channels (Slack, PagerDuty, SMS, phone call) without schema changes.
+- V1 wires EMAIL only, but the schema was designed for extensibility.
+- Interview: "how would you add Slack alerts?" → new type, new dispatcher function reading `config.webhookUrl`, register in dispatch loop.
+
+## Discriminated union return type for expected failures
+- `SendResult = { success: true } | { success: false; errorMessage: string }`
+- TypeScript narrows based on the discriminator field.
+- Callers pattern-match: `if (result.success) { ... } else { console.log(result.errorMessage) }`.
+- Modern TS idiom for operations that fail predictably (not exceptional errors).
+- Contrast with throwing — throw is for unexpected/programmer errors; discriminated returns are for domain-level "this didn't work."
+
+## Third-party service integration (Resend)
+- Managed transactional email service; alternatives include SendGrid, Postmark, AWS SES.
+- Pharos picked Resend for: modern DX, generous free tier, one-line send API.
+- Free-tier constraint: can only send to your verified account email until you verify a domain.
+- Production upgrade path: verify a domain (adds SPF/DKIM/DMARC DNS records), swap `ALERTS_FROM_EMAIL` env var, no code change needed.
+
+## Manual upsert vs Prisma upsert
+- Prisma's `.upsert()` needs a unique constraint on the where clause.
+- Without one, use "find then branch" — `findFirst`, then `create` or `update`.
+- Pharos settings PATCH does this because `NotificationChannel` has no `@@unique([userId, type])`.
+- Race condition risk (two simultaneous PATCHes both find null, both create) is negligible at V1 scale.
+- At scale: add composite unique index, use `.upsert()`.
+
+## Text vs HTML transactional emails
+- V1 Pharos sends plain text. Legible everywhere, unmistakable formatting, no client-compatibility issues.
+- HTML emails need testing across mail clients (Gmail, Outlook, Apple Mail all render differently).
+- Production tools use React Email or MJML templates.
+- Interview: "why plain text for V1?" → simplicity, deliverability, focus on the pipeline before polish.
+
+## The "settings page with fallback default" pattern
+- Backend GET returns `notificationEmail` — falls back to signup email if no explicit channel exists.
+- Frontend shows the fallback value pre-filled + a note explaining "Currently using signup email."
+- User can save to make it explicit (creates a NotificationChannel row) without ever seeing a form validation error.
+- Pattern generalizes: any settings field with a system-derived default should be visible + editable, not hidden.

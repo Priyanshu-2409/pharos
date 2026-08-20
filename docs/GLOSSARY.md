@@ -480,3 +480,39 @@ Insert-or-update. Insert if the row doesn't exist; update if it does. `upsertJob
 
 ## DLQ (Dead-Letter Queue)
 Where jobs that permanently failed (exceeded retries) go. Human review required. Not implemented in Pharos V1.
+
+## Transactional email
+Email sent in response to a user action or system event (password reset, incident alert, receipt). Distinguished from marketing/broadcast email. Different services optimize for one or the other.
+
+## Resend
+Modern transactional email service (`resend.com`). Free tier 3000 emails/month. React Email templates. Popular in TS/JS ecosystems.
+
+## Notification channel
+Abstract "way to reach a user" — email, Slack, webhook, SMS, phone. Pharos schema is polymorphic via `type` enum + `config: Json`.
+
+## Discriminated union
+TypeScript pattern where a type is a union of shapes distinguished by a "tag" field. Compiler narrows based on the tag. Modern replacement for exception-based failure handling.
+
+## Idempotency (in alerting)
+Property that dispatching an alert multiple times produces the same result — because the audit trail (Alert table) records each attempt, and users don't get double-notified (deduplicated on incident+channel).
+
+## Domain verification (email)
+Adding DNS records (SPF, DKIM, DMARC) to your domain to prove you own it. Required by email services to send FROM your domain rather than a sandbox address. Improves deliverability.
+
+## SPF, DKIM, DMARC
+Email authentication protocols. SPF says "these IPs can send from my domain." DKIM signs each message. DMARC tells receivers what to do when SPF/DKIM fail. Not directly wired in Pharos V1 — Resend sandbox handles it.
+
+## Upsert
+Insert-or-update. Insert if the row doesn't exist; update if it does. Prisma has `.upsert()`; can also be done manually via find-then-branch.
+
+## Cascading error (TypeScript)
+When one syntax/type error confuses the parser, causing many downstream errors that all clear once the root is fixed. Debugging pattern: read only the first error.
+
+## Sandbox sender (email)
+An address the email service lets you send FROM without domain verification (e.g., `onboarding@resend.dev`). Fine for development; recipients may see "via resend.dev" or land in spam.
+
+## Audit trail
+Persistent record of state changes or actions. In Pharos: `Alert` rows capture every dispatch attempt for debugging + observability.
+
+## Fallback default
+Value returned when a preferred one isn't set. `notificationEmail` falls back to `user.email` when no NotificationChannel exists.

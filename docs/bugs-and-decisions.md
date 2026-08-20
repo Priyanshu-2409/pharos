@@ -140,3 +140,31 @@
 - If the DB delete succeeded but the unschedule failed, the queue would fire jobs for a ghost monitor (harmless because the worker skips missing monitors, but wasteful).
 - Reverse would let jobs fire between the DB delete and the queue delete — same handling, marginal difference.
 - Convention: kill the trigger before the target. Small habit; matters at scale.
+
+## Resend free-tier recipient restriction
+- Free tier allows sending only TO the address you signed up with, until you verify a domain.
+- Not a bug — a Resend policy to prevent spam abuse.
+- Implication for Pharos dev: for all users, notification config is hardcoded to my email.
+- Production upgrade: verify a domain, then any recipient works.
+
+## Alerts wrapped in try/catch that never rethrows
+- `dispatchAlerts` in `updateIncidentState` catches any error and logs it, never propagates.
+- Rationale: if Resend fails mid-alert, we don't want to fail the entire check-processing job (which would cause BullMQ to retry the whole check).
+- Trade-off: silent failure. Mitigated by: the `Alert` row records `success: false`, so failures are queryable.
+- Alternative: retry the alert send via a separate queue. Deferred to Phase 15 polish.
+
+## Auto-create default NotificationChannel — decision
+- Considered: create the channel automatically at signup time.
+- Chose: create only when user visits settings and saves.
+- Rationale: cleaner user model (no channels for users who never engage), and the "hasChannel: false" fallback path in GET /settings makes the initial experience seamless anyway.
+- Existing user (Elon) backfilled manually via one-off SQL INSERT.
+
+## JSX paste error: missing opening tag
+- Copy-paste of dashboard file dropped the `<a` opening tag; TypeScript threw 7 cascading errors.
+- Fix: added `<a` back before the orphan `href` attribute.
+- Debugging lesson: read only the FIRST TS error — the rest usually cascade from it.
+
+## Duplicate file content on first paste of sendIncidentEmail.ts
+- File got the same code twice; 26 errors from redeclared identifiers.
+- Fix: select-all + delete + single paste.
+- Debugging lesson: when TS says "duplicate identifier" for MANY names, suspect the file has content twice.
