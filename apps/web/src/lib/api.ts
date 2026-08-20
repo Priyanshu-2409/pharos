@@ -1,6 +1,6 @@
 const API_BASE = "http://localhost:4000";
 
-// Shape matches your Prisma Monitor model (only the fields we care about in UI)
+// Shape returned by GET /api/monitors — includes latest check + incident flag
 export type Monitor = {
   id: string;
   name: string;
@@ -9,8 +9,17 @@ export type Monitor = {
   status: "ACTIVE" | "PAUSED";
   createdAt: string;
   updatedAt: string;
+  latestCheck: {
+    result: "UP" | "DOWN" | "DEGRADED";
+    statusCode: number | null;
+    responseTime: number;
+    errorMessage: string | null;
+    checkedAt: string;
+  } | null;
+  hasOpenIncident: boolean;
 };
 
+// Shape sent in POST /api/monitors and PATCH /api/monitors/:id
 export type MonitorInput = {
   name: string;
   url: string;
