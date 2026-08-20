@@ -99,3 +99,44 @@
 - `docker ps` shows a container as "Up" the moment the process starts, but Postgres takes 5-15 more seconds to be query-ready.
 - The `healthcheck` block in compose runs `pg_isready` every 5 seconds and reports "healthy" status.
 - Downstream services (API, worker) can `depends_on: { postgres: { condition: service_healthy }}` to wait properly. Deferred to Phase 11 when the worker comes online.
+
+## Redis added to docker-compose without `external: true`
+- Unlike Postgres (existing volume preserved via `external: true`), Redis got a fresh volume.
+- No historical data to preserve; queue state is ephemeral by design.
+- Volume persists across container restarts, but a wipe just means "next monitor create rebuilds the schedulers via API + worker bootstrap does the rest."
+
+## ioredis v6 named-export change
+- Installed `ioredis` for BullMQ. Got v6.
+- v5: `import IORedis from "ioredis"` (default export).
+- v6: `import { Redis } from "ioredis"` (named export).
+- Fixed in both `apps/api/src/lib/queue.ts` and `apps/worker/src/index.ts`.
+- Same class of issue as ioredis needing to be a direct dep in the first place — pnpm's strict layout + modern packages migrating to named exports.
+
+## Field name mismatch: `responseTime` vs `responseTimeMs`
+- My `performCheck` return shape used `responseTimeMs`, but the Prisma `Check.responseTime` column has no `Ms` suffix.
+- Kept the internal type name (`responseTimeMs`) for unit clarity, mapped at the DB write layer.
+- Small linguistic bridge = better DX in code, unchanged schema.
+- Alternative: rename the DB column via migration. Deferred to polish phase.
+
+## Prisma include > separate queries
+- `GET /api/monitors` originally returned bare monitors.
+- Upgraded to include latest check (`take: 1, orderBy checkedAt desc`) + ongoing incidents.
+- Single query, avoids N+1.
+- Frontend expectation drove the API shape — API returns exactly what the UI needs.
+
+## DEGRADED does not count toward incident opening (V1 decision)
+- Threshold check: `recentChecks.every((c) => c.result === "DOWN")`.
+- DEGRADED responses are surfaced in the UI as yellow but don't trigger incidents.
+- Rationale: incidents should mean "the site is broken," not "the site is slow." Different problem, different urgency.
+- Trivial to change: `.every((c) => c.result !== "UP")` would count DEGRADED as failure.
+
+## Turborepo `pnpm dev` at repo root vs per-app terminals
+- Discovered midway: `pnpm dev` at root runs all 3 apps in interleaved logs.
+- Convenient (one terminal) but harder to debug (mixed logs, Ctrl+C kills everything).
+- Kept because it works, but noted for future: separate terminals for API, worker, web is friendlier when debugging one service in isolation.
+
+## Order of operations in DELETE (queue before DB)
+- `monitorsRouter.delete` calls `unscheduleMonitorChecks(id)` BEFORE `prisma.monitor.delete`.
+- If the DB delete succeeded but the unschedule failed, the queue would fire jobs for a ghost monitor (harmless because the worker skips missing monitors, but wasteful).
+- Reverse would let jobs fire between the DB delete and the queue delete — same handling, marginal difference.
+- Convention: kill the trigger before the target. Small habit; matters at scale.

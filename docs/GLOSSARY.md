@@ -426,3 +426,57 @@ Instructs the browser to attach cookies to a cross-origin fetch. Required for se
 Components: PascalCase (`Modal.tsx`, `MonitorForm.tsx`).
 Utilities/hooks: camelCase (`useSession.ts`, `apiFetch.ts`).
 Consistency matters more than the specific rule; React community leans PascalCase for components.
+
+## BullMQ
+Node.js job queue library backed by Redis. Successor to `bull`. Provides queues, workers, repeatable jobs, retries, DLQs.
+
+## Job scheduler (BullMQ)
+Named recurring job spec. Registered once via `upsertJobScheduler(id, { every: ms }, jobTemplate)`. BullMQ auto-fires on schedule.
+
+## Producer / Consumer
+Distributed systems pattern where one process creates work items (producer) and another processes them (consumer), connected by a queue.
+
+## Idempotency
+Property where an operation produces the same end state whether run once or many times. Critical for retryable jobs.
+
+## Debounce (in monitoring)
+Requiring N consecutive failures before triggering an alert or incident. Prevents transient blips from causing false alarms.
+
+## Eager loading (ORM)
+Fetching a parent object AND its related child objects in a single query. Prisma's `include`. Solves the N+1 problem.
+
+## N+1 problem
+Anti-pattern where fetching a list of N items requires 1 + N queries (one for the list, then one per item for related data).
+
+## SSE (Server-Sent Events)
+HTTP-based push mechanism where the server keeps a connection open and sends updates one-way to the client. Simpler than WebSockets when bidirectional isn't needed.
+
+## Bootstrap (in distributed systems)
+Startup process that reconciles derived state (caches, queues) from the source of truth (database).
+
+## Reconciliation
+Process of aligning multiple state stores. Continuous in Kubernetes controllers; startup-only in Pharos worker.
+
+## Guard clause
+Early-return pattern. `if (bad) return; if (skip) return;` — one case per line, flat control flow.
+
+## State machine
+Model where a thing is in exactly one of N states at a time, with defined transitions between them. Pharos incidents are a two-state machine: ONGOING and RESOLVED.
+
+## Debounce vs Throttle
+Debounce = only fire the last event in a burst, after a quiet period. Throttle = fire at most once per interval. Related but distinct.
+
+## `@@index` (Prisma)
+Composite database index defined in the schema. Used for query performance on filter + sort combos.
+
+## Polling
+Client repeatedly queries the server for updates. Simple, latency-adding, load-adding.
+
+## `validateStatus` (axios)
+Config option to control which HTTP statuses axios considers "successful" (won't throw on). Setting to `() => true` disables throwing entirely.
+
+## upsert
+Insert-or-update. Insert if the row doesn't exist; update if it does. `upsertJobScheduler` in BullMQ, `upsert` in Prisma, `INSERT ... ON CONFLICT` in Postgres.
+
+## DLQ (Dead-Letter Queue)
+Where jobs that permanently failed (exceeded retries) go. Human review required. Not implemented in Pharos V1.

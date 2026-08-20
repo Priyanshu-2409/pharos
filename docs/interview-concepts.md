@@ -169,3 +169,75 @@
 - Also gives mobile users a URL-optimized keyboard.
 - Zero JS. Wraps free UX + a11y win.
 - Same family: `type="email"`, `type="number"`, `type="tel"`, `type="date"`.
+
+## Producer / consumer pattern
+- Foundational distributed-systems pattern. One process produces work (enqueues jobs); another consumes it (processes jobs).
+- Pharos: API is the producer (creates schedulers when monitors are created), worker is the consumer (executes HTTP checks).
+- Benefits: separation of concerns, independent scaling, isolation of failure modes.
+- Message queue (Redis + BullMQ in Pharos) is the coordination layer between them.
+- Interview flag: every real system uses some version of this — pub/sub, message queues, event streams, background job libraries.
+
+## Message queues and job scheduling
+- Queue systems provide durability (jobs survive process restarts), scheduling (execute now or at time X or every N seconds), retries, and observability.
+- BullMQ specifically: repeatable jobs via `upsertJobScheduler` — register once, executes on schedule forever. `every: <ms>` sets interval.
+- Pharos uses `monitor:<id>` as scheduler ID — unique per monitor, easy to add/update/remove.
+- Alternative to a job queue: `setInterval` in-process. Loses everything if process restarts. No visibility. Doesn't scale. Not viable in production.
+
+## Idempotency in distributed systems
+- Every operation should be safe to run multiple times.
+- Why: jobs can be retried after crashes; the retry should observe the same end state, not double-execute.
+- Pharos examples:
+  - Incident open guarded by `findFirst(status: ONGOING)` — can't double-open
+  - Bootstrap uses `upsertJobScheduler` — safe to re-run on every worker startup
+  - Sign-out clears server-side session but a repeated call is a harmless no-op
+- Interview pattern: "how do you handle retries?" → idempotency + at-least-once delivery + dedupe on the consumer side.
+
+## Application-level vs network-level failures
+- Application-level failure = HTTP request succeeded but the response was bad (e.g., 500 status). It's a valid observation to record.
+- Network-level failure = the HTTP request never completed (DNS failed, connection refused, timeout). Also a valid observation, but with `statusCode: null`.
+- axios's default behavior throws on any non-2xx — you have to override with `validateStatus: () => true` to prevent that and treat 4xx/5xx as data, not exceptions.
+- Distinguishing these matters. A monitor observing 500 is different from a monitor observing "domain doesn't exist." Different signals, different alert priorities.
+
+## N+1 query problem and eager loading
+- Anti-pattern: fetch a list of parents, then loop and issue one query per parent to fetch related data. 100 items = 101 queries.
+- Solution: eager loading. In Prisma, `include: { relatedThing: {} }` joins in one query.
+- Pharos: `GET /api/monitors` includes latest check and open incidents per monitor via `include`. Single optimized query.
+- Interview gold: interviewers frequently ask "how do you fetch a parent with its children efficiently?" — name the problem, name the solution.
+
+## Consecutive-failure debounce for alerting
+- Alerting on the first failure gives false positives (transient blips = pages at 3am).
+- Alerting on N consecutive failures within a time window is the standard uptime-monitoring pattern.
+- Pharos: 3 consecutive DOWN checks before opening an incident.
+- Real tools: configurable per-monitor (Better Stack, Pingdom).
+- Interviewers ask: "how do you avoid alert fatigue?" → debounce + rate limit + severity classification.
+
+## State machines derived from event streams
+- The `Check` table is an event stream — one row per observation.
+- The `Incident` table is a state derived from that stream.
+- On each new event, re-evaluate: should the state change?
+- This pattern generalizes: user activity → account state, sensor readings → machine health, transactions → account balance.
+- Alternative: mutate state on every event (imperative). Deriving from events (declarative) is safer for retries and easier to audit.
+
+## Polling vs push (real-time UI)
+- Polling: client asks the server every N seconds ("any updates?"). Simple, works everywhere, adds latency (up to N seconds) and load.
+- WebSockets: persistent connection, server pushes updates. Real-time, more infra, connection state to manage.
+- Server-Sent Events (SSE): server pushes over HTTP, one-way. Simpler than WebSockets when you don't need client-to-server messages.
+- Pharos V1 uses polling every 10s. Trade-off: simplicity vs freshness. Fine at V1 scale; SSE is a Phase 12/13 upgrade candidate.
+
+## Bootstrap / reconciliation on startup
+- Distributed systems have multiple state stores; they can drift.
+- Pattern: on startup, reconcile derived state (Redis queues) from the source of truth (Postgres).
+- Pharos worker bootstrap: scans `Monitor.status = ACTIVE`, ensures each has a scheduler via `upsertJobScheduler`.
+- Same pattern in Kubernetes controllers, message-queue consumers, cache warm-ups.
+
+## Compound indexes for time-series queries
+- `@@index([monitorId, checkedAt])` on `Check` model.
+- Enables fast "latest N checks for this monitor" queries — Postgres uses the index directly.
+- Without it: full table scan every dashboard load.
+- Interview: "when would you add a compound index?" → when queries filter by column A and sort/paginate by column B.
+
+## Guard clauses vs nested conditionals
+- Style: `if (cond) return;` at the top of a function, one condition at a time. Flat control flow.
+- `updateIncidentState` uses this pattern for 3 state-transition cases.
+- Cleaner than nested `if / else` chains, easier to read one case at a time.
+- Idiomatic in most modern languages.
