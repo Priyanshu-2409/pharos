@@ -6,6 +6,8 @@ import { prisma } from '@pharos/db';
 import { auth } from './lib/auth.js';
 import { requireAuth } from "./middleware/requireAuth.js";
 import { monitorsRouter } from "./routes/monitors.js";
+import { settingsRouter } from "./routes/settings.js";
+
 
 dotenv.config();
 
@@ -20,6 +22,7 @@ app.use(
   })
 );
 
+app.use("/api/settings", settingsRouter);
 // Better Auth handler — mounted BEFORE express.json()
 // because Better Auth reads the raw request body itself.
 app.use('/api/auth', toNodeHandler(auth));

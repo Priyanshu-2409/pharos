@@ -1,6 +1,7 @@
 const API_BASE = "http://localhost:4000";
 
-// Shape returned by GET /api/monitors — includes latest check + incident flag
+// ─── Types ───────────────────────────────────────────────────
+
 export type Monitor = {
   id: string;
   name: string;
@@ -19,14 +20,20 @@ export type Monitor = {
   hasOpenIncident: boolean;
 };
 
-// Shape sent in POST /api/monitors and PATCH /api/monitors/:id
 export type MonitorInput = {
   name: string;
   url: string;
   intervalSeconds: number;
 };
 
-// Standard fetch wrapper — always includes cookies, always sends Origin implicitly (browser does it)
+export type Settings = {
+  user: { id: string; name: string; email: string };
+  notificationEmail: string;
+  hasChannel: boolean;
+};
+
+// ─── Fetch wrapper ───────────────────────────────────────────
+
 async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
@@ -45,13 +52,13 @@ async function apiFetch<T>(
     throw new Error(errorBody.error ?? `Request failed with ${res.status}`);
   }
 
-  // DELETE returns 204 No Content — nothing to parse
   if (res.status === 204) return undefined as T;
 
   return res.json();
 }
 
-// Domain-specific helpers
+// ─── Domain-specific helpers ─────────────────────────────────
+
 export const monitorsApi = {
   list: () =>
     apiFetch<{ monitors: Monitor[] }>("/api/monitors"),
@@ -71,5 +78,15 @@ export const monitorsApi = {
   delete: (id: string) =>
     apiFetch<void>(`/api/monitors/${id}`, {
       method: "DELETE",
+    }),
+};
+
+export const settingsApi = {
+  get: () => apiFetch<Settings>("/api/settings"),
+
+  update: (notificationEmail: string) =>
+    apiFetch<{ ok: true; notificationEmail: string }>("/api/settings", {
+      method: "PATCH",
+      body: JSON.stringify({ notificationEmail }),
     }),
 };
