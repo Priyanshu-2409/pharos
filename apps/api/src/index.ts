@@ -7,7 +7,8 @@ import { auth } from './lib/auth.js';
 import { requireAuth } from "./middleware/requireAuth.js";
 import { monitorsRouter } from "./routes/monitors.js";
 import { settingsRouter } from "./routes/settings.js";
-
+import { publicStatusRouter } from "./routes/publicStatus.js";
+import { statusPagesRouter } from "./routes/statusPages.js";
 
 dotenv.config();
 
@@ -26,6 +27,10 @@ app.use("/api/settings", settingsRouter);
 // Better Auth handler — mounted BEFORE express.json()
 // because Better Auth reads the raw request body itself.
 app.use('/api/auth', toNodeHandler(auth));
+
+app.use("/api/public/status", publicStatusRouter);
+
+app.use("/api/status-pages", statusPagesRouter);
 
 // JSON parser for all OTHER routes (must come AFTER auth mount)
 app.use(express.json());
