@@ -90,3 +90,56 @@ export const settingsApi = {
       body: JSON.stringify({ notificationEmail }),
     }),
 };
+
+// ─── Status pages ────────────────────────────────────────────
+
+export type StatusPageSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  isPublic: boolean;
+  createdAt: string;
+  monitors: { id: string; name: string }[];
+};
+
+export type StatusPageCreateInput = {
+  slug: string;
+  title: string;
+  description?: string | null;
+};
+
+export type StatusPageUpdateInput = {
+  slug?: string;
+  title?: string;
+  description?: string | null;
+  isPublic?: boolean;
+};
+
+export const statusPagesApi = {
+  list: () =>
+    apiFetch<{ statusPages: StatusPageSummary[] }>("/api/status-pages"),
+
+  create: (input: StatusPageCreateInput) =>
+    apiFetch<{ statusPage: StatusPageSummary }>("/api/status-pages", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }),
+
+  update: (id: string, input: StatusPageUpdateInput) =>
+    apiFetch<{ statusPage: StatusPageSummary }>(`/api/status-pages/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
+
+  delete: (id: string) =>
+    apiFetch<void>(`/api/status-pages/${id}`, {
+      method: "DELETE",
+    }),
+
+  setMonitors: (id: string, monitorIds: string[]) =>
+    apiFetch<{ ok: true }>(`/api/status-pages/${id}/monitors`, {
+      method: "PUT",
+      body: JSON.stringify({ monitorIds }),
+    }),
+};
