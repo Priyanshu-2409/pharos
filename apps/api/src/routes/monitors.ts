@@ -2,6 +2,11 @@ import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { prisma } from "@pharos/db";
 import { requireAuth } from "../middleware/requireAuth.js";
+import {
+  scheduleMonitorChecks,
+  unscheduleMonitorChecks,
+  enqueueImmediateCheck,
+} from "../lib/queue.js";
 
 export const monitorsRouter = Router();
 
@@ -48,6 +53,9 @@ monitorsRouter.post("/", async (req: Request, res: Response) => {
     },
   });
 
+  await scheduleMonitorChecks(monitor.id, monitor.intervalSeconds);
+  await enqueueImmediateCheck(monitor.id);
+
   return res.status(201).json({ monitor });
 });
 
@@ -56,9 +64,42 @@ monitorsRouter.get("/", async (req: Request, res: Response) => {
   const monitors = await prisma.monitor.findMany({
     where: { userId: req.user!.id },
     orderBy: { createdAt: "desc" },
+    include: {
+      // Pull the single latest check for each monitor
+      checks: {
+        orderBy: { checkedAt: "desc" },
+        take: 1,
+      },
+      // Pull ongoing incidents so we know if this monitor is in an incident state
+      incidents: {
+        where: { status: "ONGOING" },
+        take: 1,
+      },
+    },
   });
 
-  return res.json({ monitors });
+  // Flatten the shape for the frontend
+  const withStatus = monitors.map((m) => ({
+    id: m.id,
+    name: m.name,
+    url: m.url,
+    intervalSeconds: m.intervalSeconds,
+    status: m.status,
+    createdAt: m.createdAt,
+    updatedAt: m.updatedAt,
+    latestCheck: m.checks[0]
+      ? {
+          result: m.checks[0].result,
+          statusCode: m.checks[0].statusCode,
+          responseTime: m.checks[0].responseTime,
+          errorMessage: m.checks[0].errorMessage,
+          checkedAt: m.checks[0].checkedAt,
+        }
+      : null,
+    hasOpenIncident: m.incidents.length > 0,
+  }));
+
+  return res.json({ monitors: withStatus });
 });
 
 // PATCH /api/monitors/:id — update a monitor (must own it)
@@ -88,6 +129,11 @@ monitorsRouter.patch("/:id", async (req: Request, res: Response) => {
     data: parsed.data,
   });
 
+  // If interval or status changed, update the scheduler.
+  if (parsed.data.intervalSeconds !== undefined) {
+    await scheduleMonitorChecks(monitor.id, monitor.intervalSeconds);
+  }
+
   return res.json({ monitor });
 });
 
@@ -102,6 +148,8 @@ monitorsRouter.delete("/:id", async (req: Request, res: Response) => {
   if (!existing) {
     return res.status(404).json({ error: "Monitor not found" });
   }
+
+  await unscheduleMonitorChecks(id);
 
   await prisma.monitor.delete({ where: { id } });
 

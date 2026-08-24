@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "@/lib/auth-client";
 import { MonitorList } from "@/components/MonitorList";
+import Link from "next/link";
+
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -43,12 +45,18 @@ export default function DashboardPage() {
         <h1 style={{ fontSize: 24, margin: 0 }}>Dashboard</h1>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 14, color: "#666" }}>{session.user.name}</span>
-          
-            <a href="/settings"
+          <Link
+            href="/status-pages"
+            style={{ fontSize: 13, color: "#58a6ff", textDecoration: "none" }}
+          >
+            Status pages
+          </Link>
+          <Link
+            href="/settings"
             style={{ fontSize: 13, color: "#58a6ff", textDecoration: "none" }}
           >
             Settings
-          </a>
+          </Link>
           <button
             onClick={handleSignOut}
             style={{ padding: "6px 12px", fontSize: 13, cursor: "pointer" }}

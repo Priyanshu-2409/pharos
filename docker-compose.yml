@@ -17,6 +17,21 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: pharos-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - pharos_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 volumes:
   pharos_pg_data:
     external: true
+  pharos_redis_data:                                                                                                                                                                                                    
