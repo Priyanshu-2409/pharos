@@ -38,4 +38,14 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 30, // 30 days in seconds
     updateAge: 60 * 60 * 24, // refresh session cookie if older than 1 day
   },
+  // Cross-domain cookies: frontend (Vercel) and API (Railway) are on
+  // different domains, so the session cookie must be SameSite=None + Secure
+  // for the browser to store and send it across origins.
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+    },
+  },
 });
