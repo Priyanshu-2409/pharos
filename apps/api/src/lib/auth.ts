@@ -43,7 +43,7 @@ export const auth = betterAuth({
   // for the browser to store and send it across origins.
   advanced: {
     defaultCookieAttributes: {
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
     },
