@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { SubscriptionStatus } from "@pharos/db";
 
 /**
  * Thin Razorpay REST client. We call the API directly rather than pulling in
@@ -120,7 +121,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 
 // Map Razorpay's subscription status strings to our enum values.
 export function mapStatus(rzpStatus: string): string {
-  const map: Record<string, string> = {
+  const map: Record<string, SubscriptionStatus> = {
     created: "CREATED",
     authenticated: "AUTHENTICATED",
     active: "ACTIVE",

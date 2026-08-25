@@ -101,7 +101,7 @@ async function handleEvent(event: RazorpayWebhookEvent): Promise<void> {
     return;
   }
 
-  const status = mapStatus(entity.status);
+  const status = mapStatus(entity.status) as "CREATED" | "AUTHENTICATED" | "ACTIVE" | "PENDING" | "HALTED" | "CANCELLED" | "COMPLETED" | "EXPIRED";
   const currentPeriodEnd = entity.current_end
     ? new Date(entity.current_end * 1000)
     : sub.currentPeriodEnd;

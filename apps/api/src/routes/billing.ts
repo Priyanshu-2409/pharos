@@ -62,13 +62,13 @@ billingRouter.post("/subscribe", requireAuth, async (req: Request, res: Response
         razorpaySubscriptionId: sub.id,
         planId,
         cycle,
-        status: mapStatus(sub.status),
+        status: mapStatus(sub.status) as "CREATED" | "AUTHENTICATED" | "ACTIVE" | "PENDING" | "HALTED" | "CANCELLED" | "COMPLETED" | "EXPIRED",
       },
       update: {
         razorpaySubscriptionId: sub.id,
         planId,
         cycle,
-        status: mapStatus(sub.status),
+        status: mapStatus(sub.status) as "CREATED" | "AUTHENTICATED" | "ACTIVE" | "PENDING" | "HALTED" | "CANCELLED" | "COMPLETED" | "EXPIRED",
         cancelAtPeriodEnd: false,
       },
     });

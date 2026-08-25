@@ -47,7 +47,7 @@ export function Pricing() {
               highlight
               badge="Recommended"
               blurb="Pay for the year up front and keep three months of the price."
-              price={<Price amount={90} period="year" was={120} save="Save 25%" />}
+              price={<Price amount={10} period="year" was={120} save="Save 25%" />}
               features={PRO}
               cta={{ label: "Start Pro yearly", href: "/signup" }}
             />
