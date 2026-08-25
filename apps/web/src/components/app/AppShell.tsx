@@ -39,7 +39,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-ink font-sans text-chalk selection:bg-beam/30">
-      <header className="border-b border-line">
+      <header className="sticky top-0 z-40 border-b border-line bg-ink/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
           <div className="flex items-center gap-8">
             <Link href="/dashboard">
