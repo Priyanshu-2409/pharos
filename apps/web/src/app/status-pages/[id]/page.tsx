@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import { useSession } from "@/lib/auth-client";
 import { statusPagesApi, type StatusPageSummary } from "@/lib/api";
 import { StatusPageForm } from "@/components/StatusPageForm";
 import { MonitorPicker } from "@/components/MonitorPicker";
+import { AppShell, PageTitle, ShellLoading } from "@/components/app/AppShell";
+import { Alert, Card, LinkButton } from "@/components/app/ui";
 
 export default function EditStatusPage() {
   const router = useRouter();
@@ -49,35 +52,28 @@ export default function EditStatusPage() {
     await loadPage();
   }
 
-  if (isPending || loading) {
-    return (
-      <div style={pageStyle}>
-        <p>Loading…</p>
-      </div>
-    );
-  }
+  if (isPending || loading) return <ShellLoading />;
 
   if (!session) return null;
 
   if (notFound) {
     return (
-      <div style={pageStyle}>
-        <div style={headerStyle}>
-          <h1 style={{ fontSize: 24, margin: 0 }}>Not found</h1>
-          <a href="/status-pages" style={linkStyle}>← Back</a>
-        </div>
-        <p style={{ color: "#666" }}>
-          This status page doesn't exist or you don't have access to it.
+      <AppShell userName={session.user.name} width="sm" title={<PageTitle>Not found</PageTitle>}>
+        <p className="text-sm text-fog">
+          This status page doesn&apos;t exist or you don&apos;t have access to it.
         </p>
-      </div>
+        <div className="mt-6">
+          <LinkButton href="/status-pages">Back to status pages</LinkButton>
+        </div>
+      </AppShell>
     );
   }
 
   if (error) {
     return (
-      <div style={pageStyle}>
-        <p style={{ color: "crimson" }}>{error}</p>
-      </div>
+      <AppShell userName={session.user.name} width="sm">
+        <Alert tone="error">{error}</Alert>
+      </AppShell>
     );
   }
 
@@ -86,74 +82,54 @@ export default function EditStatusPage() {
   const publicUrl = `/status/${page.slug}`;
 
   return (
-    <div style={pageStyle}>
-      <div style={headerStyle}>
-        <h1 style={{ fontSize: 24, margin: 0 }}>{page.title}</h1>
-        <a href="/status-pages" style={linkStyle}>← Back to list</a>
-      </div>
-
-      <div style={{ background: "#161b22", color: "white", padding: 12, borderRadius: 6, marginBottom: 24, fontSize: 13 }}>
-        <div style={{ color: "#888", marginBottom: 4 }}>Public URL</div>
-        <a href={publicUrl} target="_blank" rel="noopener" style={{ color: "#58a6ff" }}>
-          {typeof window !== "undefined" ? window.location.origin : ""}{publicUrl}
+    <AppShell
+      userName={session.user.name}
+      width="sm"
+      title={
+        <>
+          <Link href="/status-pages" className="text-xs text-fog hover:text-chalk">
+            ← Status pages
+          </Link>
+          <div className="mt-2">
+            <PageTitle>{page.title}</PageTitle>
+          </div>
+        </>
+      }
+    >
+      <div className="mb-6 rounded-2xl border border-line bg-slate-2 px-5 py-4 text-sm">
+        <div className="text-xs text-fog">Public URL</div>
+        <a
+          href={publicUrl}
+          target="_blank"
+          rel="noopener"
+          className="mt-1 block truncate font-mono text-chalk underline-offset-4 hover:underline"
+        >
+          {typeof window !== "undefined" ? window.location.origin : ""}
+          {publicUrl}
         </a>
         {!page.isPublic && (
-          <div style={{ marginTop: 6, color: "#d29922", fontSize: 12 }}>
-            ⚠ Public access is currently disabled
+          <div className="mt-3">
+            <Alert tone="warning">Public access is currently disabled</Alert>
           </div>
         )}
       </div>
 
-      <section style={cardStyle}>
-        <h2 style={sectionHeadingStyle}>Page details</h2>
-        <StatusPageForm
-          statusPage={page}
-          onSuccess={(updated) => setPage((prev) => (prev ? { ...prev, ...updated } : prev))}
-          onCancel={() => router.push("/status-pages")}
-        />
-      </section>
+      <div className="flex flex-col gap-6">
+        <Card title="Page details">
+          <StatusPageForm
+            statusPage={page}
+            onSuccess={(updated) => setPage((prev) => (prev ? { ...prev, ...updated } : prev))}
+            onCancel={() => router.push("/status-pages")}
+          />
+        </Card>
 
-      <section style={cardStyle}>
-        <h2 style={sectionHeadingStyle}>Monitors on this page</h2>
-        <MonitorPicker
-          initialSelectedIds={page.monitors.map((m) => m.id)}
-          onSave={handleSaveMonitors}
-        />
-      </section>
-    </div>
+        <Card title="Monitors on this page">
+          <MonitorPicker
+            initialSelectedIds={page.monitors.map((m) => m.id)}
+            onSave={handleSaveMonitors}
+          />
+        </Card>
+      </div>
+    </AppShell>
   );
 }
-
-const pageStyle: React.CSSProperties = {
-  maxWidth: 800,
-  margin: "40px auto",
-  fontFamily: "sans-serif",
-  padding: "0 16px",
-};
-
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 24,
-};
-
-const linkStyle: React.CSSProperties = {
-  fontSize: 13,
-  color: "#58a6ff",
-  textDecoration: "none",
-};
-
-const cardStyle: React.CSSProperties = {
-  background: "#f5f5f5",
-  color: "black",
-  padding: 20,
-  borderRadius: 6,
-  marginBottom: 24,
-};
-
-const sectionHeadingStyle: React.CSSProperties = {
-  fontSize: 16,
-  marginTop: 0,
-  marginBottom: 16,
-};

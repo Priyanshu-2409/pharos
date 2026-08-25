@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { monitorsApi, type Monitor } from "@/lib/api";
+import { Alert, Button, Loading } from "@/components/app/ui";
 
 type Props = {
   initialSelectedIds: string[];
@@ -71,58 +72,55 @@ export function MonitorPicker({ initialSelectedIds, onSave }: Props) {
     }
   }
 
-  if (loading) return <p style={{ fontSize: 13, color: "#666" }}>Loading monitors…</p>;
+  if (loading) return <Loading label="Loading monitors…" />;
 
   if (allMonitors.length === 0) {
     return (
-      <p style={{ fontSize: 13, color: "#666" }}>
+      <p className="text-sm text-fog">
         You have no monitors yet. Create some from the dashboard first.
       </p>
     );
   }
 
+  const arrow =
+    "flex h-7 w-7 items-center justify-center rounded-md border border-line text-xs text-fog transition-colors hover:border-fog hover:text-chalk disabled:cursor-not-allowed disabled:opacity-30";
+
   return (
     <div>
-      <p style={{ fontSize: 13, color: "#666", marginTop: 0, marginBottom: 12 }}>
-        Select which monitors appear on this page. Reorder using the arrows.
+      <p className="mb-3 text-sm text-fog">
+        Select which monitors appear on this page. Reorder with the arrows.
       </p>
-      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+      <ul className="flex flex-col gap-2">
         {allMonitors.map((m) => {
           const selected = selectedIds.includes(m.id);
           const position = selected ? selectedIds.indexOf(m.id) + 1 : null;
           return (
             <li
               key={m.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: 8,
-                background: selected ? "#e6f4ea" : "#fff",
-                color: "black",
-                borderRadius: 4,
-                border: selected ? "1px solid #2ea043" : "1px solid #ccc",
-              }}
+              className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+                selected ? "border-beam/50 bg-beam/5" : "border-line bg-ink"
+              }`}
             >
               <input
                 type="checkbox"
                 checked={selected}
                 onChange={() => toggle(m.id)}
+                className="h-4 w-4 accent-[#e8c46a]"
               />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{m.name}</div>
-                <div style={{ fontSize: 12, color: "#666" }}>{m.url}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium">{m.name}</div>
+                <div className="truncate font-mono text-xs text-fog">{m.url}</div>
               </div>
               {selected && position !== null && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-                  <span style={{ fontWeight: 600, minWidth: 24, textAlign: "right" }}>
+                <div className="flex items-center gap-1.5">
+                  <span className="mr-1 min-w-6 text-right font-mono text-xs text-beam">
                     #{position}
                   </span>
                   <button
                     type="button"
                     onClick={() => moveUp(m.id)}
                     disabled={position === 1}
-                    style={arrowStyle(position === 1)}
+                    className={arrow}
                     aria-label="Move up"
                   >
                     ↑
@@ -131,7 +129,7 @@ export function MonitorPicker({ initialSelectedIds, onSave }: Props) {
                     type="button"
                     onClick={() => moveDown(m.id)}
                     disabled={position === selectedIds.length}
-                    style={arrowStyle(position === selectedIds.length)}
+                    className={arrow}
                     aria-label="Move down"
                   >
                     ↓
@@ -143,35 +141,15 @@ export function MonitorPicker({ initialSelectedIds, onSave }: Props) {
         })}
       </ul>
 
-      {error && <p style={{ color: "crimson", fontSize: 13, marginTop: 12, marginBottom: 0 }}>{error}</p>}
-      {success && <p style={{ color: "#2ea043", fontSize: 13, marginTop: 12, marginBottom: 0 }}>✓ Saved</p>}
-
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        style={{
-          marginTop: 16,
-          padding: "8px 16px",
-          fontSize: 14,
-          cursor: saving ? "not-allowed" : "pointer",
-          opacity: saving ? 0.6 : 1,
-        }}
-      >
-        {saving ? "Saving…" : "Save monitors"}
-      </button>
+      <div className="mt-4 flex flex-col gap-3">
+        {error && <Alert tone="error">{error}</Alert>}
+        {success && <Alert tone="success">Saved</Alert>}
+        <div>
+          <Button variant="primary" onClick={handleSave} disabled={saving}>
+            {saving ? "Saving…" : "Save monitors"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
-}
-
-function arrowStyle(disabled: boolean): React.CSSProperties {
-  return {
-    padding: "2px 8px",
-    fontSize: 12,
-    cursor: disabled ? "not-allowed" : "pointer",
-    opacity: disabled ? 0.3 : 1,
-    background: "white",
-    border: "1px solid #ccc",
-    borderRadius: 3,
-    color: "black",
-  };
 }

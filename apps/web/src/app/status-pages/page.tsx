@@ -6,6 +6,8 @@ import { useSession } from "@/lib/auth-client";
 import { statusPagesApi, type StatusPageSummary } from "@/lib/api";
 import { Modal } from "@/components/Modal";
 import { StatusPageForm } from "@/components/StatusPageForm";
+import { AppShell, PageTitle, ShellLoading } from "@/components/app/AppShell";
+import { Alert, Badge, Button, Empty, LinkButton } from "@/components/app/ui";
 
 export default function StatusPagesListPage() {
   const router = useRouter();
@@ -53,88 +55,63 @@ export default function StatusPagesListPage() {
     navigator.clipboard.writeText(url);
   }
 
-  if (isPending || loading) {
-    return (
-      <div style={pageStyle}>
-        <p>Loading…</p>
-      </div>
-    );
-  }
+  if (isPending || loading) return <ShellLoading />;
 
   if (!session) return null;
 
   return (
-    <div style={pageStyle}>
-      <div style={headerStyle}>
-        <h1 style={{ fontSize: 24, margin: 0 }}>Status pages</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <a href="/dashboard" style={linkStyle}>Dashboard</a>
-          <a href="/settings" style={linkStyle}>Settings</a>
+    <AppShell
+      userName={session.user.name}
+      title={
+        <PageTitle sub="Shareable public URLs showing the status of selected monitors.">
+          Status pages
+        </PageTitle>
+      }
+      actions={
+        <Button variant="primary" onClick={() => setCreateOpen(true)}>
+          New page
+        </Button>
+      }
+    >
+      {error && (
+        <div className="mb-4">
+          <Alert tone="error">{error}</Alert>
         </div>
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <p style={{ fontSize: 14, color: "#888", margin: 0 }}>
-          Shareable public URLs showing the status of selected monitors.
-        </p>
-        <button
-          onClick={() => setCreateOpen(true)}
-          style={{ padding: "8px 12px", fontSize: 14, cursor: "pointer" }}
-        >
-          + New page
-        </button>
-      </div>
-
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+      )}
 
       {pages.length === 0 ? (
-        <p style={{ color: "#666" }}>
-          No status pages yet. Create one to get a shareable URL.
-        </p>
+        <Empty title="No status pages yet" body="Create one to get a shareable URL." />
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+        <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-slate">
           {pages.map((p) => {
             const publicUrl = `/status/${p.slug}`;
             return (
-              <li
-                key={p.id}
-                style={{
-                  padding: 12,
-                  background: "#f5f5f5",
-                  color: "black",
-                  borderRadius: 4,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontWeight: 600 }}>{p.title}</span>
-                    {!p.isPublic && (
-                      <span style={{ fontSize: 10, background: "#888", color: "white", padding: "2px 6px", borderRadius: 3, fontWeight: 600 }}>
-                        PRIVATE
-                      </span>
-                    )}
+              <li key={p.id} className="px-5 py-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-medium">{p.title}</span>
+                    {!p.isPublic && <Badge>Private</Badge>}
                   </div>
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => copyLink(p.slug)} style={smallBtn} title="Copy shareable URL">
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => copyLink(p.slug)} title="Copy shareable URL">
                       Copy URL
-                    </button>
-                    <a href={publicUrl} target="_blank" rel="noopener" style={smallBtnLink}>
+                    </Button>
+                    <LinkButton size="sm" href={publicUrl} external>
                       View
-                    </a>
-                    <a href={`/status-pages/${p.id}`} style={smallBtnLink}>
+                    </LinkButton>
+                    <LinkButton size="sm" href={`/status-pages/${p.id}`}>
                       Edit
-                    </a>
-                    <button onClick={() => handleDelete(p)} style={{ ...smallBtn, color: "crimson" }}>
+                    </LinkButton>
+                    <Button size="sm" variant="danger" onClick={() => handleDelete(p)}>
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 </div>
-                <div style={{ fontSize: 13, color: "#666" }}>
-                  {publicUrl} · {p.monitors.length} monitor{p.monitors.length === 1 ? "" : "s"}
+                <div className="mt-1.5 font-mono text-xs text-fog">
+                  {publicUrl} <span className="text-fog/50">·</span> {p.monitors.length} monitor
+                  {p.monitors.length === 1 ? "" : "s"}
                 </div>
-                {p.description && (
-                  <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>{p.description}</div>
-                )}
+                {p.description && <div className="mt-1 text-xs text-fog/80">{p.description}</div>}
               </li>
             );
           })}
@@ -150,42 +127,6 @@ export default function StatusPagesListPage() {
           onCancel={() => setCreateOpen(false)}
         />
       </Modal>
-    </div>
+    </AppShell>
   );
 }
-
-const pageStyle: React.CSSProperties = {
-  maxWidth: 800,
-  margin: "40px auto",
-  fontFamily: "sans-serif",
-  padding: "0 16px",
-};
-
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 24,
-};
-
-const linkStyle: React.CSSProperties = {
-  fontSize: 13,
-  color: "#58a6ff",
-  textDecoration: "none",
-};
-
-const smallBtn: React.CSSProperties = {
-  padding: "4px 10px",
-  fontSize: 12,
-  cursor: "pointer",
-  background: "white",
-  border: "1px solid #ccc",
-  borderRadius: 3,
-  color: "black",
-};
-
-const smallBtnLink: React.CSSProperties = {
-  ...smallBtn,
-  textDecoration: "none",
-  display: "inline-block",
-};

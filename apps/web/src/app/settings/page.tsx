@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { settingsApi, type Settings } from "@/lib/api";
+import { AppShell, PageTitle, ShellLoading } from "@/components/app/AppShell";
+import { Alert, Button, Card, Field, inputClass } from "@/components/app/ui";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -53,72 +55,41 @@ export default function SettingsPage() {
     }
   }
 
-  if (isPending || loading) {
-    return (
-      <div style={{ maxWidth: 600, margin: "40px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
-        <p>Loading…</p>
-      </div>
-    );
-  }
+  if (isPending || loading) return <ShellLoading />;
 
   if (!session || !settings) return null;
 
   return (
-    <div style={{ maxWidth: 600, margin: "40px auto", fontFamily: "sans-serif", padding: "0 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, margin: 0 }}>Settings</h1>
-        <a href="/dashboard" style={{ fontSize: 14, color: "#58a6ff" }}>← Back to dashboard</a>
-      </div>
-
-      <div style={{ background: "#f5f5f5", color: "black", padding: 20, borderRadius: 6 }}>
-        <h2 style={{ fontSize: 16, marginTop: 0, marginBottom: 4 }}>Notifications</h2>
-        <p style={{ fontSize: 13, color: "#666", marginTop: 0, marginBottom: 16 }}>
-          Where should Pharos send incident alerts?
-        </p>
-
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-            Notification email
+    <AppShell userName={session.user.name} width="sm" title={<PageTitle>Settings</PageTitle>}>
+      <Card title="Notifications" description="Where Pharos sends incident alerts.">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Field
+            label="Notification email"
+            hint={
+              !settings.hasChannel
+                ? "Currently using your signup email. Save to lock this in."
+                : undefined
+            }
+          >
             <input
               type="email"
               value={notificationEmail}
               onChange={(e) => setNotificationEmail(e.target.value)}
               required
-              style={{
-                padding: 8,
-                fontSize: 14,
-                border: "1px solid #ccc",
-                borderRadius: 4,
-                background: "white",
-                color: "black",
-              }}
+              className={inputClass}
             />
-          </label>
+          </Field>
 
-          {!settings.hasChannel && (
-            <p style={{ fontSize: 12, color: "#666", margin: 0 }}>
-              Currently using your signup email. Click Save to lock this in.
-            </p>
-          )}
+          {error && <Alert tone="error">{error}</Alert>}
+          {success && <Alert tone="success">Saved</Alert>}
 
-          {error && <p style={{ color: "crimson", fontSize: 13, margin: 0 }}>{error}</p>}
-          {success && <p style={{ color: "#2ea043", fontSize: 13, margin: 0 }}>✓ Saved</p>}
-
-          <button
-            type="submit"
-            disabled={saving}
-            style={{
-              padding: "8px 16px",
-              fontSize: 14,
-              cursor: saving ? "not-allowed" : "pointer",
-              opacity: saving ? 0.6 : 1,
-              alignSelf: "flex-start",
-            }}
-          >
-            {saving ? "Saving…" : "Save"}
-          </button>
+          <div>
+            <Button type="submit" variant="primary" disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </div>
         </form>
-      </div>
-    </div>
+      </Card>
+    </AppShell>
   );
 }

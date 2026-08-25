@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { StatusPageAutoRefresh } from "./StatusPageAutoRefresh";
+import { Wordmark } from "@/components/landing/Wordmark";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -43,19 +45,19 @@ async function fetchStatus(slug: string): Promise<StatusPageData | null> {
 }
 
 function overallStatus(monitors: MonitorSummary[]): { label: string; color: string } {
-  if (monitors.length === 0) return { label: "No monitors configured", color: "#888" };
+  if (monitors.length === 0) return { label: "No monitors configured", color: "#8b93a6" };
   const statuses = monitors.map((m) => m.currentStatus);
-  if (statuses.some((s) => s === "DOWN")) return { label: "Major outage", color: "#f85149" };
-  if (statuses.some((s) => s === "DEGRADED")) return { label: "Degraded performance", color: "#d29922" };
-  if (statuses.every((s) => s === "UP")) return { label: "All systems operational", color: "#2ea043" };
-  return { label: "Status unknown", color: "#888" };
+  if (statuses.some((s) => s === "DOWN")) return { label: "Major outage", color: "#e5484d" };
+  if (statuses.some((s) => s === "DEGRADED")) return { label: "Degraded performance", color: "#e8c46a" };
+  if (statuses.every((s) => s === "UP")) return { label: "All systems operational", color: "#3ecf8e" };
+  return { label: "Status unknown", color: "#8b93a6" };
 }
 
 function statusColor(status: MonitorSummary["currentStatus"]): string {
-  if (status === "UP") return "#2ea043";
-  if (status === "DEGRADED") return "#d29922";
-  if (status === "DOWN") return "#f85149";
-  return "#888";
+  if (status === "UP") return "#3ecf8e";
+  if (status === "DEGRADED") return "#e8c46a";
+  if (status === "DOWN") return "#e5484d";
+  return "#8b93a6";
 }
 
 function statusLabel(status: MonitorSummary["currentStatus"]): string {
@@ -94,137 +96,120 @@ export default async function StatusPage({
   }
 
   const overall = overallStatus(data.monitors);
+  const incidents = data.monitors.flatMap((m) => m.incidents.map((inc) => ({ inc, monitor: m })));
 
   return (
-    <div
-      style={{
-        maxWidth: 800,
-        margin: "40px auto",
-        fontFamily: "sans-serif",
-        padding: "0 16px",
-        color: "white",
-      }}
-    >
+    <div className="min-h-screen bg-ink font-sans text-chalk selection:bg-beam/30">
       <StatusPageAutoRefresh />
 
-      {/* Header */}
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 28, margin: 0 }}>{data.title}</h1>
-        {data.description && (
-          <p style={{ fontSize: 14, color: "#888", marginTop: 8 }}>{data.description}</p>
-        )}
-      </div>
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        {/* Header */}
+        <header className="mb-8">
+          <h1 className="font-display text-3xl font-medium tracking-tight md:text-4xl">{data.title}</h1>
+          {data.description && <p className="mt-2 text-sm text-fog">{data.description}</p>}
+        </header>
 
-      {/* Overall banner */}
-      <div
-        style={{
-          padding: 20,
-          background: overall.color,
-          color: "white",
-          borderRadius: 6,
-          marginBottom: 24,
-          fontSize: 18,
-          fontWeight: 600,
-        }}
-      >
-        {overall.label}
-      </div>
+        {/* Overall banner */}
+        <div
+          className="mb-6 flex items-center gap-3 rounded-2xl border px-5 py-4"
+          style={{ borderColor: `${overall.color}66`, background: `${overall.color}14` }}
+        >
+          <span
+            className="h-2.5 w-2.5 flex-none rounded-full"
+            style={{ background: overall.color }}
+            aria-hidden="true"
+          />
+          <span className="font-display text-lg font-medium" style={{ color: overall.color }}>
+            {overall.label}
+          </span>
+        </div>
 
-      {/* Monitor list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
-        {data.monitors.map((m) => (
-          <div
-            key={m.id}
-            style={{
-              padding: 16,
-              background: "#161b22",
-              border: "1px solid #30363d",
-              borderRadius: 6,
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 16 }}>{m.name}</div>
-                <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{m.url}</div>
-              </div>
-              <div
-                style={{
-                  padding: "4px 10px",
-                  background: statusColor(m.currentStatus),
-                  color: "white",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  borderRadius: 4,
-                  letterSpacing: 0.3,
-                }}
-              >
-                {statusLabel(m.currentStatus)}
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#888" }}>
-              {m.uptimePercent !== null && (
-                <span>
-                  <strong style={{ color: "white" }}>{m.uptimePercent.toFixed(2)}%</strong> uptime
-                  ({data.windowDays}d)
-                </span>
-              )}
-              {m.latestResponseTime !== null && (
-                <span>
-                  <strong style={{ color: "white" }}>{m.latestResponseTime}ms</strong> response
-                </span>
-              )}
-              {m.latestCheckedAt && (
-                <span>Checked {formatDate(m.latestCheckedAt)}</span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Incidents section */}
-      <div>
-        <h2 style={{ fontSize: 20, marginBottom: 16 }}>
-          Recent incidents (last {data.windowDays} days)
-        </h2>
-        {data.monitors.every((m) => m.incidents.length === 0) ? (
-          <p style={{ fontSize: 14, color: "#888" }}>
-            No incidents in the last {data.windowDays} days. 🎉
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {data.monitors.flatMap((m) =>
-              m.incidents.map((inc) => (
-                <div
-                  key={inc.id}
-                  style={{
-                    padding: 12,
-                    background: "#161b22",
-                    border: "1px solid #30363d",
-                    borderLeft: `4px solid ${inc.status === "ONGOING" ? "#f85149" : "#888"}`,
-                    borderRadius: 4,
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <strong style={{ fontSize: 14 }}>{m.name}</strong>
-                    <span style={{ fontSize: 12, color: inc.status === "ONGOING" ? "#f85149" : "#888" }}>
-                      {inc.status === "ONGOING" ? "ONGOING" : "RESOLVED"}
-                    </span>
+        {/* Monitor list */}
+        <ul className="mb-12 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-slate">
+          {data.monitors.map((m) => {
+            const color = statusColor(m.currentStatus);
+            return (
+              <li key={m.id} className="px-5 py-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="font-medium">{m.name}</div>
+                    <div className="mt-0.5 truncate font-mono text-xs text-fog">{m.url}</div>
                   </div>
-                  <div style={{ fontSize: 13, color: "#888", marginTop: 4 }}>
-                    {formatDate(inc.startedAt)}
-                    {" · "}
-                    Duration: {formatDuration(inc.startedAt, inc.resolvedAt)}
-                  </div>
-                  {inc.summary && (
-                    <div style={{ fontSize: 13, marginTop: 6, color: "#c9d1d9" }}>
-                      {inc.summary}
-                    </div>
-                  )}
+                  <span
+                    className="flex flex-none items-center gap-2 rounded-full border px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider"
+                    style={{ color, borderColor: `${color}66` }}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} aria-hidden="true" />
+                    {statusLabel(m.currentStatus)}
+                  </span>
                 </div>
-              ))
-            )}
-          </div>
-        )}
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-fog">
+                  {m.uptimePercent !== null && (
+                    <span>
+                      <strong className="font-medium text-chalk">{m.uptimePercent.toFixed(2)}%</strong>{" "}
+                      uptime ({data.windowDays}d)
+                    </span>
+                  )}
+                  {m.latestResponseTime !== null && (
+                    <span>
+                      <strong className="font-medium text-chalk">{m.latestResponseTime}ms</strong> response
+                    </span>
+                  )}
+                  {m.latestCheckedAt && <span>Checked {formatDate(m.latestCheckedAt)}</span>}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Incidents section */}
+        <section>
+          <h2 className="mb-4 font-display text-xl font-medium">
+            Recent incidents{" "}
+            <span className="font-mono text-xs font-normal text-fog">last {data.windowDays} days</span>
+          </h2>
+          {incidents.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-line px-5 py-8 text-center text-sm text-fog">
+              No incidents in the last {data.windowDays} days.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {incidents.map(({ inc, monitor }) => {
+                const ongoing = inc.status === "ONGOING";
+                return (
+                  <li
+                    key={inc.id}
+                    className="rounded-2xl border border-line bg-slate px-5 py-4"
+                    style={{ borderLeft: `3px solid ${ongoing ? "#e5484d" : "#8b93a6"}` }}
+                  >
+                    <div className="flex items-baseline justify-between gap-4">
+                      <strong className="text-sm font-medium">{monitor.name}</strong>
+                      <span
+                        className="font-mono text-[11px] uppercase tracking-wider"
+                        style={{ color: ongoing ? "#e5484d" : "#8b93a6" }}
+                      >
+                        {ongoing ? "Ongoing" : "Resolved"}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-fog">
+                      {formatDate(inc.startedAt)}
+                      {" · "}
+                      Duration: {formatDuration(inc.startedAt, inc.resolvedAt)}
+                    </div>
+                    {inc.summary && <div className="mt-2 text-sm text-chalk/85">{inc.summary}</div>}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <footer className="mt-16 flex items-center justify-between border-t border-line pt-6 text-xs text-fog">
+          <span>Refreshes every 30 seconds.</span>
+          <Link href="/" className="inline-flex items-center gap-1.5 hover:text-chalk">
+            Powered by <Wordmark className="[&>span]:text-sm" />
+          </Link>
+        </footer>
       </div>
     </div>
   );

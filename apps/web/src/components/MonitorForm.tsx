@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { monitorsApi, type Monitor, type MonitorInput } from "@/lib/api";
+import { Alert, Button, Field, inputClass } from "@/components/app/ui";
 
 type Props = {
   // If provided, form is in "edit" mode — pre-fills values, calls update
@@ -40,35 +41,31 @@ export function MonitorForm({ monitor, onSuccess, onCancel }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-        Name
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <Field label="Name">
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
           maxLength={100}
-          style={{padding: 8, fontSize: 14, border: "1px solid #ccc", borderRadius: 4, background: "white",color: "black",
-          }}
+          placeholder="Payments API"
+          className={inputClass}
         />
-      </label>
+      </Field>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-        URL
+      <Field label="URL">
         <input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           required
           placeholder="https://example.com"
-          style={{padding: 8, fontSize: 14, border: "1px solid #ccc", borderRadius: 4, background: "white",color: "black",
-          }}
+          className={`${inputClass} font-mono`}
         />
-      </label>
+      </Field>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-        Check interval (seconds)
+      <Field label="Check interval (seconds)" hint="Between 30 and 3600.">
         <input
           type="number"
           value={intervalSeconds}
@@ -76,34 +73,19 @@ export function MonitorForm({ monitor, onSuccess, onCancel }: Props) {
           required
           min={30}
           max={3600}
-          style={{padding: 8, fontSize: 14, border: "1px solid #ccc", borderRadius: 4, background: "white",color: "black",
-          }}
+          className={inputClass}
         />
-      </label>
+      </Field>
 
-      {error && <p style={{ color: "crimson", fontSize: 13, margin: 0 }}>{error}</p>}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 8, justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={loading}
-          style={{ padding: "8px 16px", fontSize: 14, cursor: "pointer" }}
-        >
+      <div className="mt-2 flex justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={loading}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: "8px 16px",
-            fontSize: 14,
-            cursor: loading ? "not-allowed" : "pointer",
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          {loading ? "Saving…" : isEdit ? "Save" : "Create"}
-        </button>
+        </Button>
+        <Button type="submit" variant="primary" disabled={loading}>
+          {loading ? "Saving…" : isEdit ? "Save changes" : "Create monitor"}
+        </Button>
       </div>
     </form>
   );

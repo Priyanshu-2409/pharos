@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { statusPagesApi, type StatusPageSummary } from "@/lib/api";
+import { Alert, Button, Field, inputClass } from "@/components/app/ui";
 
 type Props = {
   statusPage?: StatusPageSummary;
@@ -49,9 +50,16 @@ export function StatusPageForm({ statusPage, onSuccess, onCancel }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-        Slug
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <Field
+        label="Slug"
+        hint={
+          <>
+            Lowercase letters, numbers, and hyphens. Public URL:{" "}
+            <span className="font-mono text-chalk/80">/status/{slug || "…"}</span>
+          </>
+        }
+      >
         <input
           type="text"
           value={slug}
@@ -61,15 +69,11 @@ export function StatusPageForm({ statusPage, onSuccess, onCancel }: Props) {
           maxLength={32}
           pattern="[a-z0-9-]+"
           placeholder="mycompany"
-          style={inputStyle}
+          className={`${inputClass} font-mono`}
         />
-        <span style={helpStyle}>
-          Lowercase letters, numbers, and hyphens only. Public URL: /status/{slug || "..."}
-        </span>
-      </label>
+      </Field>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-        Title
+      <Field label="Title">
         <input
           type="text"
           value={title}
@@ -77,71 +81,43 @@ export function StatusPageForm({ statusPage, onSuccess, onCancel }: Props) {
           required
           maxLength={100}
           placeholder="My Company Status"
-          style={inputStyle}
+          className={inputClass}
         />
-      </label>
+      </Field>
 
-      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
-        Description (optional)
+      <Field label="Description (optional)">
         <textarea
           value={description ?? ""}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={500}
           rows={3}
           placeholder="Live status of our production services"
-          style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
+          className={`${inputClass} h-auto resize-y py-2`}
         />
-      </label>
+      </Field>
 
       {isEdit && (
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+        <label className="flex items-center gap-3 text-sm text-chalk">
           <input
             type="checkbox"
             checked={isPublic}
             onChange={(e) => setIsPublic(e.target.checked)}
+            className="h-4 w-4 accent-[#e8c46a]"
           />
           Publicly accessible
         </label>
       )}
 
-      {error && <p style={{ color: "crimson", fontSize: 13, margin: 0 }}>{error}</p>}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 8, justifyContent: "flex-end" }}>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={loading}
-          style={{ padding: "8px 16px", fontSize: 14, cursor: "pointer" }}
-        >
+      <div className="mt-2 flex justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={loading}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: "8px 16px",
-            fontSize: 14,
-            cursor: loading ? "not-allowed" : "pointer",
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          {loading ? "Saving…" : isEdit ? "Save" : "Create"}
-        </button>
+        </Button>
+        <Button type="submit" variant="primary" disabled={loading}>
+          {loading ? "Saving…" : isEdit ? "Save changes" : "Create page"}
+        </Button>
       </div>
     </form>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: 8,
-  fontSize: 14,
-  border: "1px solid #ccc",
-  borderRadius: 4,
-  background: "white",
-  color: "black",
-};
-
-const helpStyle: React.CSSProperties = {
-  fontSize: 11,
-  color: "#666",
-};

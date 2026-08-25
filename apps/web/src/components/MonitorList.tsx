@@ -5,6 +5,7 @@ import { monitorsApi, type Monitor } from "@/lib/api";
 import { getStatusIndicator, timeSince } from "@/lib/monitorStatus";
 import { Modal } from "./Modal";
 import { MonitorForm } from "./MonitorForm";
+import { Alert, Badge, Button, Dot, Empty, Loading } from "@/components/app/ui";
 
 export function MonitorList() {
   const [monitors, setMonitors] = useState<Monitor[]>([]);
@@ -43,87 +44,67 @@ export function MonitorList() {
     }
   }
 
-  if (loading) return <p>Loading monitors…</p>;
-  if (error) return <p style={{ color: "crimson" }}>{error}</p>;
+  if (loading) return <Loading label="Loading monitors…" />;
+  if (error) return <Alert tone="error">{error}</Alert>;
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h2 style={{ fontSize: 18, margin: 0 }}>Your monitors</h2>
-        <button
-          onClick={() => setCreateOpen(true)}
-          style={{ padding: "8px 12px", fontSize: 14, cursor: "pointer" }}
-        >
-          + New Monitor
-        </button>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="font-display text-lg font-medium">
+          Your monitors{" "}
+          <span className="ml-1 font-mono text-xs text-fog">{monitors.length}</span>
+        </h2>
+        <Button variant="primary" onClick={() => setCreateOpen(true)}>
+          New monitor
+        </Button>
       </div>
 
       {monitors.length === 0 ? (
-        <p style={{ color: "#666" }}>No monitors yet. Create one to get started.</p>
+        <Empty
+          title="No monitors yet"
+          body="Add an endpoint and Pharos starts checking it within the minute."
+        />
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+        <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-slate">
           {monitors.map((m) => {
             const indicator = getStatusIndicator(m);
             return (
               <li
                 key={m.id}
-                style={{
-                  padding: 12,
-                  background: "#f5f5f5",
-                  color: "black",
-                  borderRadius: 4,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
+                className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 14 }}>{indicator.emoji}</span>
-                    <span style={{ fontWeight: 600 }}>{m.name}</span>
-                    {m.hasOpenIncident && (
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          background: "#f85149",
-                          color: "white",
-                          padding: "2px 6px",
-                          borderRadius: 3,
-                          letterSpacing: 0.5,
-                        }}
-                      >
-                        INCIDENT
-                      </span>
-                    )}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <Dot color={indicator.color} pulse={m.hasOpenIncident} />
+                    <span className="font-medium">{m.name}</span>
+                    {m.hasOpenIncident && <Badge tone="danger">Incident</Badge>}
+                    {m.status === "PAUSED" && <Badge>Paused</Badge>}
                   </div>
-                  <div style={{ fontSize: 13, color: "#666" }}>
-                    {m.url} • every {m.intervalSeconds}s
+                  <div className="mt-1 truncate font-mono text-xs text-fog">
+                    {m.url} <span className="text-fog/50">·</span> every {m.intervalSeconds}s
                   </div>
-                  <div style={{ fontSize: 12, color: "#888", marginTop: 4 }}>
+                  <div className="mt-1.5 text-xs text-fog">
                     {m.latestCheck ? (
                       <>
-                        {indicator.label} • {timeSince(m.latestCheck.checkedAt)} • {m.latestCheck.responseTime}ms
-                        {m.latestCheck.statusCode !== null && ` • HTTP ${m.latestCheck.statusCode}`}
+                        <span style={{ color: indicator.color }}>{indicator.label}</span>
+                        {" · "}
+                        {timeSince(m.latestCheck.checkedAt)}
+                        {" · "}
+                        {m.latestCheck.responseTime}ms
+                        {m.latestCheck.statusCode !== null && ` · HTTP ${m.latestCheck.statusCode}`}
                       </>
                     ) : (
-                      <>No checks yet</>
+                      <>{indicator.label}</>
                     )}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => setEditingMonitor(m)}
-                    style={{ padding: "6px 10px", fontSize: 13, cursor: "pointer" }}
-                  >
+                <div className="flex flex-none gap-2">
+                  <Button size="sm" onClick={() => setEditingMonitor(m)}>
                     Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(m)}
-                    style={{ padding: "6px 10px", fontSize: 13, cursor: "pointer", color: "crimson" }}
-                  >
+                  </Button>
+                  <Button size="sm" variant="danger" onClick={() => handleDelete(m)}>
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </li>
             );
@@ -131,7 +112,7 @@ export function MonitorList() {
         </ul>
       )}
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="New Monitor">
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="New monitor">
         <MonitorForm
           onSuccess={() => {
             setCreateOpen(false);
@@ -141,7 +122,7 @@ export function MonitorList() {
         />
       </Modal>
 
-      <Modal open={!!editingMonitor} onClose={() => setEditingMonitor(null)} title="Edit Monitor">
+      <Modal open={!!editingMonitor} onClose={() => setEditingMonitor(null)} title="Edit monitor">
         {editingMonitor && (
           <MonitorForm
             monitor={editingMonitor}

@@ -25,35 +25,25 @@ export function Modal({ open, onClose, title, children }: Props) {
   return (
     <div
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-ink/70 p-4 backdrop-blur-sm"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "white", color: "black",
-          padding: 24,
-          borderRadius: 8,
-          minWidth: 400,
-          maxWidth: 500,
-          fontFamily: "sans-serif",
-        }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="w-full max-w-md rounded-2xl border border-line bg-slate p-6 font-sans text-chalk shadow-2xl"
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>{title}</h2>
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="font-display text-lg font-medium">{title}</h2>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer" }}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-fog transition-colors hover:bg-slate-2 hover:text-chalk"
             aria-label="Close"
           >
-            ×
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
           </button>
         </div>
         {children}
