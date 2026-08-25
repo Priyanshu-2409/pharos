@@ -134,7 +134,7 @@ export default function Home() {
             >
               Start monitoring for free
             </Link>
-            
+            <a
               href="https://github.com/Priyanshu-2409/pharos"
               target="_blank"
               rel="noopener noreferrer"
@@ -307,7 +307,8 @@ export default function Home() {
           <div className="flex flex-wrap gap-x-8 gap-y-3 text-sm text-fog">
             <a href="#features" className="hover:text-chalk">Features</a>
             <a href="#pricing" className="hover:text-chalk">Pricing</a>
-            
+
+            <a
               href="https://github.com/Priyanshu-2409/pharos"
               target="_blank"
               rel="noopener noreferrer"
