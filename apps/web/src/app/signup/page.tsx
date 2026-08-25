@@ -1,19 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signUp } from "@/lib/auth-client";
+import { signUp, authClient } from "@/lib/auth-client";
 import { AuthShell, Field, SubmitButton, FormError } from "@/components/auth/AuthShell";
 
 export default function SignupPage() {
-  const router = useRouter();
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [resent, setResent] = useState(false);
+
+  // After the user clicks the link in their inbox, Better Auth verifies the
+  // token and redirects here. Must be an absolute URL on a trusted origin.
+  const callbackURL =
+    typeof window !== "undefined" ? `${window.location.origin}/login?verified=1` : "/login";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,6 +28,7 @@ export default function SignupPage() {
       email,
       password,
       name,
+      callbackURL,
     });
 
     setLoading(false);
@@ -33,8 +38,50 @@ export default function SignupPage() {
       return;
     }
 
-    // Success — session cookie is already set. Redirect.
-    router.push("/dashboard");
+    // No session yet — the account exists but can't sign in until verified.
+    setSent(true);
+  }
+
+  async function handleResend() {
+    setResent(false);
+    await authClient.sendVerificationEmail({ email, callbackURL });
+    setResent(true);
+  }
+
+  if (sent) {
+    return (
+      <AuthShell
+        title="Check your inbox"
+        subtitle={`We sent a verification link to ${email}.`}
+        footer={
+          <>
+            Wrong address?{" "}
+            <button
+              type="button"
+              onClick={() => setSent(false)}
+              className="text-chalk underline-offset-4 hover:underline"
+            >
+              Go back
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm leading-relaxed text-fog">
+          Click the link to activate your account. It expires in an hour. If it
+          isn&apos;t there, check spam, or send another one.
+        </p>
+        <div className="mt-6 flex items-center gap-4">
+          <button
+            type="button"
+            onClick={handleResend}
+            className="h-10 rounded-md border border-line px-4 text-sm text-chalk transition-colors hover:border-fog"
+          >
+            Resend link
+          </button>
+          {resent && <span className="text-sm text-ok">Sent</span>}
+        </div>
+      </AuthShell>
+    );
   }
 
   return (
