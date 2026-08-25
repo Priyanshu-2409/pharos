@@ -65,3 +65,54 @@ body {
     animation: none !important;
   }
 }
+/* FollowLens — desktop cursor magnifier on the landing page.
+   Hidden entirely on coarse pointers (touch) as a belt-and-suspenders guard;
+   the component's own (pointer: fine) check already prevents it starting. */
+.follow-lens {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 124px;  /* R * 2 */
+  height: 124px;
+  border-radius: 9999px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0;
+  border: 1px solid var(--color-line);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(232, 196, 106, 0.15);
+  background: var(--color-ink);
+  transition: opacity 0.25s ease;
+  will-change: transform;
+}
+.follow-lens.on {
+  opacity: 1;
+}
+.lens-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  opacity: 0;
+}
+.lens-dot {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 11px;
+  height: 11px;
+  border-radius: 9999px;
+  background: var(--color-beam);
+  box-shadow: 0 0 12px rgba(232, 196, 106, 0.6);
+}
+
+@media (pointer: coarse) {
+  .follow-lens {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .follow-lens {
+    display: none;
+  }
+}

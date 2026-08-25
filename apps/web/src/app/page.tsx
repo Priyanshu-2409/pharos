@@ -3,7 +3,7 @@ import { Nav } from "@/components/landing/Nav";
 import { HeroScene } from "@/components/landing/HeroScene";
 import { Pricing } from "@/components/landing/Pricing";
 import { Wordmark } from "@/components/landing/Wordmark";
-import { Reveal } from "@/components/landing/Reveal";
+import FollowLens from "@/components/landing/FollowLens";
 
 const CHECKS = [
   ["api.stripe.com/v1/charges", "200", "84ms", "ok"],
@@ -106,6 +106,7 @@ const FAQ = [
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-ink font-sans text-chalk selection:bg-beam/30">
+      <FollowLens />
       <Nav />
 
       {/* ---------------------------------------------------------------- hero */}
@@ -174,24 +175,22 @@ export default function Home() {
       {/* ------------------------------------------------------------- problem */}
       <section id="problem" className="scroll-mt-24">
         <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-          <Reveal from="left">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-beam">The problem</p>
-            <h2 className="mt-4 max-w-2xl font-display text-4xl font-medium tracking-tight md:text-5xl">
-              Integrations don&apos;t crash. They go quiet.
-            </h2>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-fog">
-              The failures that cost you are the ones nothing logs. Three you&apos;ve
-              probably already had:
-            </p>
-          </Reveal>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-beam">The problem</p>
+          <h2 className="mt-4 max-w-2xl font-display text-4xl font-medium tracking-tight md:text-5xl">
+            Integrations don&apos;t crash. They go quiet.
+          </h2>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-fog">
+            The failures that cost you are the ones nothing logs. Three you&apos;ve
+            probably already had:
+          </p>
 
-          <div className="mt-14 grid gap-4 md:grid-cols-3">
-            {FAILURES.map((f, i) => (
-              <Reveal key={f.title} from="card" delay={i * 120} as="article" className="rounded-2xl border border-line bg-slate p-8">
+          <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-3">
+            {FAILURES.map((f) => (
+              <article key={f.title} className="bg-slate p-8">
                 <p className="font-mono text-3xl text-signal">{f.code}</p>
                 <h3 className="mt-6 font-display text-xl font-medium">{f.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-fog">{f.body}</p>
-              </Reveal>
+              </article>
             ))}
           </div>
         </div>
@@ -200,36 +199,26 @@ export default function Home() {
       {/* ------------------------------------------------------------ features */}
       <section id="features" className="scroll-mt-24 border-t border-line">
         <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-          <Reveal from="right" className="max-w-2xl">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-beam">What you get</p>
-            <h2 className="mt-4 font-display text-4xl font-medium tracking-tight md:text-5xl">
-              Small surface. Sharp edges.
-            </h2>
-            <p className="mt-6 text-lg leading-relaxed text-fog">
-              Pharos does one thing: watch endpoints and tell the truth about
-              them. Everything here is in service of that.
-            </p>
-          </Reveal>
-
-          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f, i) => (
-              <Reveal
-                key={f.title}
-                from="card"
-                delay={(i % 3) * 120 + Math.floor(i / 3) * 60}
-                className="group relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl border border-line bg-slate-2 p-7 transition-colors hover:border-beam/40"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="font-display text-xl font-medium leading-snug">{f.title}</h3>
-                  <span className="font-mono text-xs text-fog/60">0{i + 1}</span>
+          <div className="grid gap-12 md:grid-cols-[1fr_2fr]">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-beam">What you get</p>
+              <h2 className="mt-4 font-display text-4xl font-medium tracking-tight md:text-5xl">
+                Small surface. Sharp edges.
+              </h2>
+              <p className="mt-6 text-lg leading-relaxed text-fog">
+                Pharos does one thing: watch endpoints and tell the truth about
+                them. Everything here is in service of that.
+              </p>
+            </div>
+            <div className="grid gap-x-10 gap-y-12 sm:grid-cols-2">
+              {FEATURES.map((f) => (
+                <div key={f.title}>
+                  <div className="h-px w-8 bg-beam" aria-hidden="true" />
+                  <h3 className="mt-5 font-display text-lg font-medium">{f.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-fog">{f.body}</p>
                 </div>
-                <p className="mt-6 text-sm leading-relaxed text-fog">{f.body}</p>
-                <div
-                  className="absolute -bottom-px left-7 h-px w-0 bg-beam transition-all duration-500 group-hover:w-20"
-                  aria-hidden="true"
-                />
-              </Reveal>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -237,16 +226,14 @@ export default function Home() {
       {/* ----------------------------------------------------------- how it works */}
       <section id="how" className="scroll-mt-24 border-t border-line bg-slate">
         <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-          <Reveal from="left">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-beam">How it works</p>
-            <h2 className="mt-4 max-w-2xl font-display text-4xl font-medium tracking-tight md:text-5xl">
-              From URL to alert, in four moves.
-            </h2>
-          </Reveal>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-beam">How it works</p>
+          <h2 className="mt-4 max-w-2xl font-display text-4xl font-medium tracking-tight md:text-5xl">
+            From URL to alert, in four moves.
+          </h2>
 
           <ol className="mt-16 grid gap-10 md:grid-cols-4 md:gap-6">
             {STEPS.map((s, i) => (
-              <Reveal key={s.n} as="li" from="right" delay={i * 110} className="relative">
+              <li key={s.n} className="relative">
                 <div className="flex items-center gap-4">
                   <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full border border-beam/50 font-mono text-sm text-beam">
                     {s.n}
@@ -257,7 +244,7 @@ export default function Home() {
                 </div>
                 <h3 className="mt-6 font-display text-lg font-medium">{s.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-fog">{s.body}</p>
-              </Reveal>
+              </li>
             ))}
           </ol>
         </div>
@@ -269,13 +256,13 @@ export default function Home() {
       <section id="faq" className="scroll-mt-24 border-t border-line">
         <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
           <div className="grid gap-12 md:grid-cols-[1fr_2fr]">
-            <Reveal from="left">
+            <div>
               <p className="font-mono text-xs uppercase tracking-[0.2em] text-beam">Questions</p>
               <h2 className="mt-4 font-display text-4xl font-medium tracking-tight md:text-5xl">
                 Before you sign up
               </h2>
-            </Reveal>
-            <Reveal from="right" delay={120} className="divide-y divide-line border-y border-line">
+            </div>
+            <div className="divide-y divide-line border-y border-line">
               {FAQ.map((item) => (
                 <details key={item.q} className="group py-5">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-base font-medium text-chalk [&::-webkit-details-marker]:hidden">
@@ -290,14 +277,14 @@ export default function Home() {
                   <p className="mt-4 max-w-2xl text-sm leading-relaxed text-fog">{item.a}</p>
                 </details>
               ))}
-            </Reveal>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ------------------------------------------------------------ closing */}
       <section className="border-t border-line">
-        <Reveal from="up" className="mx-auto max-w-6xl px-6 py-24 text-center md:py-32">
+        <div className="mx-auto max-w-6xl px-6 py-24 text-center md:py-32">
           <h2 className="font-display text-4xl font-medium tracking-tight md:text-6xl">
             Find out before they do.
           </h2>
@@ -307,7 +294,7 @@ export default function Home() {
           >
             Create a free account
           </Link>
-        </Reveal>
+        </div>
       </section>
 
       {/* -------------------------------------------------------------- footer */}

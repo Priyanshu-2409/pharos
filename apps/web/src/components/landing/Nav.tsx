@@ -3,7 +3,7 @@ import { Wordmark } from "./Wordmark";
 
 export function Nav() {
   return (
-    <header className="fixed inset-x-0 top-0 z-20">
+    <header className="fixed inset-x-0 top-0 z-20 border-b border-line/40 bg-ink/70 backdrop-blur-md">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <Link href="/" className="flex items-center gap-2.5 text-chalk">
           <Wordmark />
