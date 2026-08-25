@@ -14,6 +14,12 @@ export const monitorsRouter = Router();
 // Mounted here once instead of on each route individually.
 monitorsRouter.use(requireAuth);
 
+// Plan limits. Free is capped; Pro is effectively unlimited and can check
+// as often as every 60s. Enforced server-side so the UI can't bypass them.
+const FREE_MAX_MONITORS = 5;
+const FREE_MIN_INTERVAL = 300; // 5 minutes
+const PRO_MIN_INTERVAL = 60;   // 1 minute
+
 // ─── Zod schemas ─────────────────────────────────────────────
 
 const createMonitorSchema = z.object({
@@ -43,6 +49,34 @@ monitorsRouter.post("/", async (req: Request, res: Response) => {
     return res.status(400).json({
       error: "Invalid input",
       details: parsed.error.flatten(),
+    });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.user!.id },
+    select: { plan: true },
+  });
+  const isPro = user?.plan === "PRO";
+
+  // Enforce the monitor count cap for Free.
+  if (!isPro) {
+    const count = await prisma.monitor.count({ where: { userId: req.user!.id } });
+    if (count >= FREE_MAX_MONITORS) {
+      return res.status(403).json({
+        error: `Free plan is limited to ${FREE_MAX_MONITORS} monitors. Upgrade to Pro for unlimited monitors.`,
+        code: "PLAN_LIMIT_MONITORS",
+      });
+    }
+  }
+
+  // Enforce the minimum check interval for the plan.
+  const minInterval = isPro ? PRO_MIN_INTERVAL : FREE_MIN_INTERVAL;
+  if (parsed.data.intervalSeconds < minInterval) {
+    return res.status(403).json({
+      error: isPro
+        ? `The fastest check interval is ${minInterval} seconds.`
+        : `Free plan checks run at most every ${minInterval} seconds. Upgrade to Pro for 1-minute checks.`,
+      code: "PLAN_LIMIT_INTERVAL",
     });
   }
 

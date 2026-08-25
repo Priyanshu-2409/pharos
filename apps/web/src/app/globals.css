@@ -72,8 +72,8 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  width: 124px;  /* R * 2 */
-  height: 124px;
+  width: 64px;  /* R * 2 */
+  height: 64px;
   border-radius: 9999px;
   overflow: hidden;
   pointer-events: none;

@@ -9,6 +9,8 @@ import { monitorsRouter } from "./routes/monitors.js";
 import { settingsRouter } from "./routes/settings.js";
 import { publicStatusRouter } from "./routes/publicStatus.js";
 import { statusPagesRouter } from "./routes/statusPages.js";
+import { billingRouter } from "./routes/billing.js";
+import { billingWebhookRouter } from "./routes/billingWebhook.js";
 
 dotenv.config();
 
@@ -31,12 +33,17 @@ app.use("/api/settings", settingsRouter);
 // because Better Auth reads the raw request body itself.
 app.use('/api/auth', toNodeHandler(auth));
 
+// Razorpay webhook — raw body parser, must precede express.json()
+app.use('/api/billing/webhook', billingWebhookRouter);
+
 app.use("/api/public/status", publicStatusRouter);
 
 app.use("/api/status-pages", statusPagesRouter);
 
 // JSON parser for all OTHER routes (must come AFTER auth mount)
 app.use(express.json());
+
+app.use("/api/billing", billingRouter);
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'pharos-api' });

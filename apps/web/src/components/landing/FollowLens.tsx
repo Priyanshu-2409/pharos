@@ -9,8 +9,8 @@ import { useEffect, useRef } from "react";
  * center. Desktop pointers only — the (pointer: fine) guard means it never
  * starts on phones or tablets.
  */
-const R = 62; // lens radius (lens is 124px)
-const ZOOM = 1.6; // magnification
+const R = 32; // lens radius (lens is 124px)
+const ZOOM = 1.3; // magnification
 const DOT = 0.09; // lens scale in "dot" mode (~11px dot)
 const LAG = 0.16; // follow lag (lower = lazier)
 
