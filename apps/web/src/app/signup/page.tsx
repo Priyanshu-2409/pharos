@@ -101,7 +101,7 @@ export default function SignupPage() {
         <Field
           label="Name"
           type="text"
-          placeholder="Priyanshu"
+          placeholder="Your name..."
           autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -110,7 +110,7 @@ export default function SignupPage() {
         <Field
           label="Email"
           type="email"
-          placeholder="you@example.com"
+          placeholder="your-email@example.com"
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
