@@ -105,7 +105,7 @@ const FAQ = [
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-ink font-sans text-chalk selection:bg-beam/30">
+    <div id="lens-root" className="flex min-h-screen flex-col bg-ink font-sans text-chalk selection:bg-beam/30">
       <FollowLens />
       <Nav />
 

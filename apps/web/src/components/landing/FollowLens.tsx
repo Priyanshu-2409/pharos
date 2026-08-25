@@ -41,16 +41,18 @@ export default function FollowLens() {
     let raf = 0;
 
     const snapshot = () => {
-      const main = document.querySelector("main");
-      if (!main) return;
-      const clone = main.cloneNode(true) as HTMLElement;
+      const root = document.getElementById("lens-root") ?? document.querySelector("main");
+      if (!root) return;
+      const clone = root.cloneNode(true) as HTMLElement;
       // Drop anything that can't or shouldn't be cloned into the lens.
       clone
         .querySelectorAll("canvas, video, iframe, .follow-lens")
         .forEach((n) => n.remove());
       clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+      const w = document.documentElement.clientWidth;
+      clone.style.width = w + "px";
       content.replaceChildren(clone);
-      content.style.width = document.documentElement.clientWidth + "px";
+      content.style.width = w + "px";
       snapDirty = false;
     };
 
