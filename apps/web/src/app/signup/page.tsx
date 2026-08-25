@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signUp } from "@/lib/auth-client";
+import { AuthShell, Field, SubmitButton, FormError } from "@/components/auth/AuthShell";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -18,7 +20,7 @@ export default function SignupPage() {
     setError(null);
     setLoading(true);
 
-    const { data, error: signUpError } = await signUp.email({
+    const { error: signUpError } = await signUp.email({
       email,
       password,
       name,
@@ -36,57 +38,52 @@ export default function SignupPage() {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: "80px auto", fontFamily: "sans-serif" }}>
-      <h1 style={{ fontSize: 24, marginBottom: 24 }}>Sign up for Pharos</h1>
-
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <input
+    <AuthShell
+      title="Create your account"
+      subtitle="Five monitors, email alerts, and a status page. Free, no card."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/login" className="text-chalk underline-offset-4 hover:underline">
+            Log in
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Field
+          label="Name"
           type="text"
-          placeholder="Name"
+          placeholder="Priyanshu"
+          autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
-          style={{ padding: 10, fontSize: 14 }}
         />
-        <input
+        <Field
+          label="Email"
           type="email"
-          placeholder="Email"
+          placeholder="you@example.com"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          style={{ padding: 10, fontSize: 14 }}
         />
-        <input
+        <Field
+          label="Password"
           type="password"
-          placeholder="Password (min 8 characters)"
+          placeholder="At least 8 characters"
+          autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={8}
-          style={{ padding: 10, fontSize: 14 }}
         />
 
-        {error && (
-          <p style={{ color: "crimson", fontSize: 14, margin: 0 }}>{error}</p>
-        )}
+        <FormError message={error} />
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: 12,
-            fontSize: 14,
-            cursor: loading ? "not-allowed" : "pointer",
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          {loading ? "Creating account…" : "Sign up"}
-        </button>
+        <SubmitButton loading={loading} idle="Create account" busy="Creating account…" />
       </form>
-
-      <p style={{ marginTop: 24, fontSize: 14 }}>
-        Already have an account? <a href="/login">Log in</a>
-      </p>
-    </div>
+    </AuthShell>
   );
 }

@@ -10,6 +10,24 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage);
+
+  /* Pharos brand palette — used by landing + auth pages only */
+  --color-ink: #08090c;
+  --color-slate: #101218;
+  --color-slate-2: #161923;
+  --color-line: #232735;
+  --color-fog: #8b93a6;
+  --color-chalk: #eef0f4;
+  --color-beam: #e8c46a;
+  --color-beam-deep: #b8913a;
+  --color-signal: #e5484d;
+  --color-ok: #3ecf8e;
+
+  --animate-sweep: sweep 9s linear infinite;
+  --animate-rise: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-ticker: ticker 28s linear infinite;
+  --animate-pulse-dot: pulse-dot 2.4s ease-in-out infinite;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,4 +41,27 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes sweep {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sweep, .animate-rise, .animate-ticker, .animate-pulse-dot {
+    animation: none !important;
+  }
 }

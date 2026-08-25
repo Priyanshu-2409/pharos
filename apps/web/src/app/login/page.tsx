@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "@/lib/auth-client";
+import { AuthShell, Field, SubmitButton, FormError } from "@/components/auth/AuthShell";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -33,48 +35,42 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: "80px auto", fontFamily: "sans-serif" }}>
-      <h1 style={{ fontSize: 24, marginBottom: 24 }}>Log in to Pharos</h1>
-
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <input
+    <AuthShell
+      title="Welcome back"
+      subtitle="Log in to see what your endpoints have been doing."
+      footer={
+        <>
+          No account yet?{" "}
+          <Link href="/signup" className="text-chalk underline-offset-4 hover:underline">
+            Sign up
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Field
+          label="Email"
           type="email"
-          placeholder="Email"
+          placeholder="you@example.com"
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          style={{ padding: 10, fontSize: 14 }}
         />
-        <input
+        <Field
+          label="Password"
           type="password"
-          placeholder="Password"
+          placeholder="••••••••"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          style={{ padding: 10, fontSize: 14 }}
         />
 
-        {error && (
-          <p style={{ color: "crimson", fontSize: 14, margin: 0 }}>{error}</p>
-        )}
+        <FormError message={error} />
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: 12,
-            fontSize: 14,
-            cursor: loading ? "not-allowed" : "pointer",
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          {loading ? "Signing in…" : "Log in"}
-        </button>
+        <SubmitButton loading={loading} idle="Log in" busy="Signing in…" />
       </form>
-
-      <p style={{ marginTop: 24, fontSize: 14 }}>
-        No account yet? <a href="/signup">Sign up</a>
-      </p>
-    </div>
+    </AuthShell>
   );
 }
